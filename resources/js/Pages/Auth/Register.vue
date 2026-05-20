@@ -33,8 +33,8 @@ function submit() {
                 >
                     ← Kembali ke beranda
                 </Link>
-                <h1 class="display-tight text-5xl font-semibold tracking-tight text-[var(--ink)]">
-                    Daftar sebagai <span class="display-italic text-[var(--accent)]">Mahasiswa</span>
+                <h1 class="display-tight text-5xl tracking-tight text-[var(--ink)]">
+                    Daftar sebagai <span class="text-gradient-blue">Mahasiswa</span>
                 </h1>
                 <p class="mt-2 text-sm text-[var(--muted)]">
                     Akun baru menunggu verifikasi admin sebelum dapat masuk.

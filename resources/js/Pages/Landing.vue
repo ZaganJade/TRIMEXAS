@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link } from "@inertiajs/vue3";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import {
     ArrowUpRight,
     ArrowRight,
@@ -8,9 +8,18 @@ import {
     Sparkles,
     SunMedium,
     MoonStar,
-    Asterisk,
+    Zap,
+    ShieldCheck,
+    GitBranch,
+    Activity,
+    Lock,
+    UsersRound,
+    BookOpenCheck,
     Plus,
     Minus,
+    LineChart,
+    Cpu,
+    FileCheck2,
 } from "@lucide/vue";
 
 defineProps({
@@ -35,13 +44,13 @@ function toggleTheme() {
 }
 
 /* ===========================
-   Live fuzzy demo (interactive)
-   IPK + Penghasilan + Prestasi → Skor
+   Live fuzzy demo
    =========================== */
 const ipk = ref(3.65);
 const penghasilan = ref(3.5); // dalam juta
 const prestasi = ref(22);
 
+// Membership functions (matching mesin produksi)
 const muRendahIpk = (x) => {
     if (x <= 3.25) return 1;
     if (x >= 3.6) return 0;
@@ -63,58 +72,176 @@ const muRendahHsl = (x) => {
     if (x >= 7) return 0;
     return (7 - x) / 4;
 };
+const muSedangHsl = (x) => {
+    if (x <= 3 || x >= 10) return 0;
+    if (x <= 5) return (x - 3) / 2;
+    return (10 - x) / 5;
+};
 const muTinggiHsl = (x) => {
     if (x <= 7) return 0;
     if (x >= 10) return 1;
     return (x - 7) / 3;
 };
-const muBanyakPrestasi = (x) => {
+
+const muSedikitPa = (x) => {
+    if (x <= 5) return 1;
+    if (x >= 15) return 0;
+    return (15 - x) / 10;
+};
+const muSedangPa = (x) => {
+    if (x <= 5 || x >= 25) return 0;
+    if (x <= 15) return (x - 5) / 10;
+    return (25 - x) / 10;
+};
+const muBanyakPa = (x) => {
     if (x <= 15) return 0;
     if (x >= 25) return 1;
     return (x - 15) / 10;
 };
 
-// Mini-Tsukamoto — tiga rule sederhana untuk demo
+const memberships = computed(() => ({
+    ipk: {
+        rendah: muRendahIpk(ipk.value),
+        sedang: muSedangIpk(ipk.value),
+        tinggi: muTinggiIpk(ipk.value),
+    },
+    hsl: {
+        rendah: muRendahHsl(penghasilan.value),
+        sedang: muSedangHsl(penghasilan.value),
+        tinggi: muTinggiHsl(penghasilan.value),
+    },
+    pa: {
+        sedikit: muSedikitPa(prestasi.value),
+        sedang: muSedangPa(prestasi.value),
+        banyak: muBanyakPa(prestasi.value),
+    },
+}));
+
 const result = computed(() => {
-    const a = muTinggiIpk(ipk.value);
-    const b = muRendahHsl(penghasilan.value);
-    const c = muBanyakPrestasi(prestasi.value);
+    const m = memberships.value;
+    // R1: ipk=tinggi & hsl=rendah & pa=banyak → LAYAK
+    const r1 = Math.min(m.ipk.tinggi, m.hsl.rendah, m.pa.banyak);
+    // R2: ipk=sedang | hsl=sedang | pa=sedang → DIPERTIMBANGKAN
+    const r2 = Math.max(m.ipk.sedang, m.hsl.sedang, m.pa.sedang);
+    // R3: ipk=rendah | hsl=tinggi | pa=sedikit → TIDAK LAYAK
+    const r3 = Math.max(m.ipk.rendah, m.hsl.tinggi, m.pa.sedikit);
 
-    // R1: ipk=tinggi & hsl=rendah & prestasi=banyak → LAYAK (z = 75 + α*25)
-    // R2: ipk=sedang OR hsl=sedang → DIPERTIMBANGKAN (z = 50 + α*25)
-    // R3: ipk=rendah → TIDAK (z = 50 - α*50)
-    const r1 = Math.min(a, b, c);
-    const r2 = Math.min(muSedangIpk(ipk.value), muTinggiHsl(penghasilan.value));
-    const r3 = muRendahIpk(ipk.value);
+    // Tsukamoto z-functions (threshold default 50/75)
+    const z1 = 75 + r1 * 25;
+    const z2 = 50 + r2 * 25;
+    const z3 = 50 - r3 * 50;
 
-    const num = r1 * (75 + r1 * 25) + r2 * (50 + r2 * 25) + r3 * (50 - r3 * 50);
+    const num = r1 * z1 + r2 * z2 + r3 * z3;
     const den = r1 + r2 + r3;
     const score = den > 0 ? num / den : 0;
 
     let category = "Tidak Layak";
-    let color = "var(--secondary)";
+    let badgeBg = "var(--danger)";
     if (score >= 75) {
         category = "Layak";
-        color = "var(--accent)";
+        badgeBg = "var(--success)";
     } else if (score >= 50) {
         category = "Dipertimbangkan";
-        color = "var(--tertiary)";
+        badgeBg = "var(--primary)";
     }
 
     return {
         score: Math.round(score * 100) / 100,
         category,
-        color,
+        badgeBg,
         rules: [
-            { label: "R1 · LAYAK", alpha: r1, fired: r1 > 0 },
-            { label: "R2 · DIPERTIMBANGKAN", alpha: r2, fired: r2 > 0 },
-            { label: "R3 · TIDAK LAYAK", alpha: r3, fired: r3 > 0 },
+            { code: "R1", label: "Layak", alpha: r1, z: z1, color: "var(--success)" },
+            { code: "R2", label: "Dipertimbangkan", alpha: r2, z: z2, color: "var(--primary)" },
+            { code: "R3", label: "Tidak Layak", alpha: r3, z: z3, color: "var(--danger)" },
         ],
     };
 });
 
+// Smooth animated counter for the score
+const displayScore = ref(0);
+let scoreRaf = null;
+function animateScore(target) {
+    cancelAnimationFrame(scoreRaf);
+    const start = displayScore.value;
+    const diff = target - start;
+    const duration = 380;
+    const t0 = performance.now();
+    const step = (t) => {
+        const p = Math.min(1, (t - t0) / duration);
+        const ease = 1 - Math.pow(1 - p, 3);
+        displayScore.value = start + diff * ease;
+        if (p < 1) scoreRaf = requestAnimationFrame(step);
+    };
+    scoreRaf = requestAnimationFrame(step);
+}
+
+onMounted(() => {
+    displayScore.value = result.value.score;
+});
+onBeforeUnmount(() => cancelAnimationFrame(scoreRaf));
+
+// Watch result and animate
+import { watch } from "vue";
+watch(
+    () => result.value.score,
+    (s) => animateScore(s)
+);
+
 /* ===========================
-   Smooth scroll helper
+   IPK chart points (animated SVG)
+   For visualizing the membership functions live
+   =========================== */
+const chartW = 400;
+const chartH = 140;
+
+// Each membership rendered as polyline points
+function ipkPathRendah() {
+    const pts = [];
+    for (let x = 3.0; x <= 4.0; x += 0.02) {
+        const y = muRendahIpk(x);
+        const px = ((x - 3.0) / 1.0) * chartW;
+        const py = chartH - y * (chartH - 12) - 6;
+        pts.push(`${px},${py}`);
+    }
+    return `M ${pts.join(" L ")}`;
+}
+function ipkPathSedang() {
+    const pts = [];
+    for (let x = 3.0; x <= 4.0; x += 0.02) {
+        const y = muSedangIpk(x);
+        const px = ((x - 3.0) / 1.0) * chartW;
+        const py = chartH - y * (chartH - 12) - 6;
+        pts.push(`${px},${py}`);
+    }
+    return `M ${pts.join(" L ")}`;
+}
+function ipkPathTinggi() {
+    const pts = [];
+    for (let x = 3.0; x <= 4.0; x += 0.02) {
+        const y = muTinggiIpk(x);
+        const px = ((x - 3.0) / 1.0) * chartW;
+        const py = chartH - y * (chartH - 12) - 6;
+        pts.push(`${px},${py}`);
+    }
+    return `M ${pts.join(" L ")}`;
+}
+
+const ipkMarkerX = computed(() => ((ipk.value - 3.0) / 1.0) * chartW);
+
+/* ===========================
+   Mouse-follow gradient on bento
+   =========================== */
+function bentoMouse(e) {
+    const t = e.currentTarget;
+    const rect = t.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    t.style.setProperty("--mouse-x", `${x}%`);
+    t.style.setProperty("--mouse-y", `${y}%`);
+}
+
+/* ===========================
+   Smooth scroll
    =========================== */
 function scrollTo(id) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -127,7 +254,7 @@ const openFaq = ref(0);
 const faqs = [
     {
         q: "Apa bedanya dengan ranking biasa pakai bobot?",
-        a: "Pembobotan linear membutuhkan bobot tetap dan threshold kaku — sulit menangani ketidakpastian. Tsukamoto menerima nilai berderajat (μ ∈ 0..1), menjalankan inferensi linguistik (IPK tinggi DAN penghasilan rendah → layak), dan menghasilkan skor yang traceable per rule.",
+        a: "Pembobotan linear butuh bobot tetap & threshold kaku — sulit menangani ketidakpastian. Tsukamoto menerima nilai berderajat (μ ∈ 0..1), menjalankan inferensi linguistik (IPK tinggi DAN penghasilan rendah → layak), dan menghasilkan skor yang traceable per rule.",
     },
     {
         q: "Bagaimana saya tahu hasilnya benar?",
@@ -139,7 +266,7 @@ const faqs = [
     },
     {
         q: "Berapa lama untuk 1.000 kandidat?",
-        a: "Baseline pengukuran kami: 1,29 detik dengan worker self-spawn dan chunking 50 kandidat per job. Target NFR ≤ 5 menit. Selisih ~230x cadangan, jadi aman walau di hardware lemah.",
+        a: "Baseline pengukuran kami: 1,29 detik dengan worker self-spawn dan chunking 50 kandidat per job. Target NFR ≤ 5 menit. Selisih ~230× cadangan, jadi aman walau di hardware lemah.",
     },
 ];
 
@@ -147,10 +274,10 @@ const faqs = [
    Stats data
    =========================== */
 const stats = [
-    { value: "75", unit: "rule", label: "Knowledge base aktif" },
-    { value: "5", unit: "var", label: "Variabel input fuzzy" },
-    { value: "≤0,01", unit: "selisih", label: "vs perhitungan manual" },
-    { value: "1,29", unit: "detik", label: "untuk 1.000 kandidat" },
+    { value: "75", unit: "rule", label: "Knowledge base aktif", icon: BookOpenCheck },
+    { value: "5", unit: "var", label: "Variabel input fuzzy", icon: Cpu },
+    { value: "≤0,01", unit: "Δ", label: "vs perhitungan manual", icon: FileCheck2 },
+    { value: "1,29", unit: "s", label: "untuk 1.000 kandidat", icon: Zap },
 ];
 
 const team = [
@@ -160,202 +287,229 @@ const team = [
     "Muhammad Rizki Ibrahim",
 ];
 
-/* ===========================
-   Marquee items (editorial ticker)
-   =========================== */
 const tickerItems = [
     "Fuzzy Tsukamoto",
     "Audit-trail lengkap",
     "Privacy by design",
     "Reproducible per-batch",
-    "Open-source friendly",
-    "Built for AI Praktikum",
     "75 rule × 5 variabel",
     "Eligibility 4-gate",
+    "1.000 kandidat / 1,29 s",
+    "Open source friendly",
 ];
 </script>
 
 <template>
     <Head title="Trimexas — SPK Beasiswa Fuzzy Tsukamoto" />
 
-    <main class="relative min-h-screen overflow-x-clip bg-[var(--background)] bg-noise text-[var(--foreground)]">
+    <main class="relative min-h-screen overflow-x-clip bg-[var(--background)] text-[var(--foreground)]">
         <!-- =========================================================
-             ATMOSPHERE — paper texture + dotted grid + floating glyphs
+             ATMOSPHERE — gradient mesh + dot grid + soft halos
              ========================================================= -->
-        <div class="pointer-events-none absolute inset-0 -z-10">
-            <div class="absolute inset-0 bg-grid-dot opacity-50"></div>
-            <div
-                class="absolute -left-32 top-32 h-80 w-80 rounded-full opacity-40 blur-[100px]"
-                :style="{ background: 'radial-gradient(closest-side, var(--accent-soft), transparent)' }"
-                aria-hidden="true"
-            ></div>
-            <div
-                class="absolute -right-20 top-[600px] h-96 w-96 rounded-full opacity-30 blur-[120px]"
-                :style="{ background: 'radial-gradient(closest-side, var(--secondary-soft), transparent)' }"
-                aria-hidden="true"
-            ></div>
-        </div>
-
-        <!-- Decorative floating asterisks -->
-        <Asterisk
-            class="absolute right-[10%] top-32 h-12 w-12 text-[var(--accent)] float-slow opacity-50"
-            aria-hidden="true"
-            :stroke-width="1"
-        />
-        <Asterisk
-            class="absolute left-[8%] top-[55vh] h-8 w-8 text-[var(--secondary)] spin-slow opacity-40"
-            aria-hidden="true"
-            :stroke-width="1.2"
-        />
+        <div class="pointer-events-none absolute inset-0 -z-10 bg-hero-mesh"></div>
+        <div class="pointer-events-none absolute inset-0 -z-10 bg-grid-line"></div>
+        <div class="pointer-events-none absolute inset-0 -z-10 bg-noise"></div>
 
         <!-- =========================================================
-             NAV — minimal editorial masthead
+             NAV — minimal, glass on scroll
              ========================================================= -->
-        <header class="relative z-30">
-            <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10" aria-label="Navigasi utama">
-                <Link href="/" class="group flex items-baseline gap-2">
-                    <span class="display-italic text-2xl font-semibold tracking-tight text-[var(--accent)]">
-                        Trimexas<sup class="text-xs">®</sup>
-                    </span>
-                    <span class="hidden text-[10px] uppercase tracking-[0.2em] text-[var(--muted)] sm:inline">
-                        Est. 2026 · Kelompok 4
-                    </span>
-                </Link>
-
-                <div class="flex items-center gap-6">
-                    <button
-                        type="button"
-                        class="hidden text-sm link-draw text-[var(--muted)] hover:text-[var(--foreground)] md:inline-block"
-                        @click="scrollTo('demo')"
-                    >
-                        Coba demo
-                    </button>
-                    <button
-                        type="button"
-                        class="hidden text-sm link-draw text-[var(--muted)] hover:text-[var(--foreground)] md:inline-block"
-                        @click="scrollTo('how')"
-                    >
-                        Cara kerja
-                    </button>
-                    <button
-                        type="button"
-                        class="hidden text-sm link-draw text-[var(--muted)] hover:text-[var(--foreground)] md:inline-block"
-                        @click="scrollTo('faq')"
-                    >
-                        FAQ
-                    </button>
-
-                    <button
-                        type="button"
-                        class="grid h-9 w-9 place-items-center rounded-full border border-[var(--border)] bg-[var(--paper)] text-[var(--foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                        :aria-label="isDark ? 'Aktifkan tema terang' : 'Aktifkan tema gelap'"
-                        @click="toggleTheme"
-                    >
-                        <SunMedium v-if="isDark" :size="16" />
-                        <MoonStar v-else :size="16" />
-                    </button>
-
-                    <Link
-                        :href="route('login')"
-                        class="group inline-flex items-center gap-1.5 rounded-full border border-[var(--ink)] bg-[var(--ink)] px-4 py-2 text-sm font-medium text-[var(--paper)] transition-all hover:bg-[var(--accent)] hover:border-[var(--accent)]"
-                    >
-                        Masuk
-                        <ArrowUpRight :size="14" class="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        <header class="sticky top-0 z-30">
+            <div class="mx-auto mt-4 max-w-7xl px-6 lg:px-10">
+                <nav
+                    class="card-glass flex items-center justify-between rounded-full px-5 py-2.5"
+                    aria-label="Navigasi utama"
+                >
+                    <Link href="/" class="group flex items-center gap-2.5">
+                        <span class="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[0_4px_12px_rgba(49,137,198,0.4)] transition-transform group-hover:scale-110">
+                            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 17 L10 7 L13 13 L19 5" />
+                            </svg>
+                        </span>
+                        <span class="font-display text-base font-semibold tracking-tight">Trimexas</span>
+                        <span class="hidden text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)] sm:inline">v1.0</span>
                     </Link>
-                </div>
-            </nav>
+
+                    <div class="hidden items-center gap-7 text-sm md:flex">
+                        <button class="link-draw text-[var(--muted)] hover:text-[var(--foreground)]" @click="scrollTo('demo')">Demo</button>
+                        <button class="link-draw text-[var(--muted)] hover:text-[var(--foreground)]" @click="scrollTo('how')">Cara kerja</button>
+                        <button class="link-draw text-[var(--muted)] hover:text-[var(--foreground)]" @click="scrollTo('method')">Metode</button>
+                        <button class="link-draw text-[var(--muted)] hover:text-[var(--foreground)]" @click="scrollTo('faq')">FAQ</button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            class="grid h-9 w-9 place-items-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                            :aria-label="isDark ? 'Aktifkan tema terang' : 'Aktifkan tema gelap'"
+                            @click="toggleTheme"
+                        >
+                            <SunMedium v-if="isDark" :size="15" />
+                            <MoonStar v-else :size="15" />
+                        </button>
+                        <Link
+                            :href="route('login')"
+                            class="hidden rounded-full px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:text-[var(--primary)] sm:inline-block"
+                        >
+                            Masuk
+                        </Link>
+                        <Link
+                            :href="route('register')"
+                            class="group inline-flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-dark)]"
+                        >
+                            Daftar
+                            <ArrowUpRight :size="14" class="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                        </Link>
+                    </div>
+                </nav>
+            </div>
         </header>
 
         <!-- =========================================================
-             HERO — kinetic editorial spread
+             HERO — kinetic display + live demo card side-by-side
              ========================================================= -->
-        <section class="relative z-10 mx-auto max-w-7xl px-6 pt-12 pb-20 lg:px-10">
-            <!-- Issue tag -->
-            <div class="reveal-fade flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.25em] text-[var(--muted)]">
-                <span class="inline-block h-2 w-2 rounded-full bg-[var(--accent)] ticker-pulse"></span>
-                <span>Vol. 01 / Issue MVP / 2026</span>
-                <span class="hidden h-px flex-1 bg-[var(--border)] sm:inline-block"></span>
-                <span class="hidden text-[var(--muted)] sm:inline">Triv × MEXC Foundation</span>
+        <section class="relative z-10 mx-auto max-w-7xl px-6 pt-20 pb-24 lg:px-10 lg:pt-32">
+            <!-- Pre-headline status pill -->
+            <div class="reveal-fade flex items-center gap-2 text-xs font-medium">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span class="absolute inset-0 rounded-full bg-[var(--primary)] pulse-ring"></span>
+                    <span class="relative h-2.5 w-2.5 rounded-full bg-[var(--primary)]"></span>
+                </span>
+                <span class="mono text-[10px] uppercase tracking-[0.25em] text-[var(--muted)]">
+                    LIVE · v1.0 · Triv × MEXC Foundation
+                </span>
             </div>
 
-            <!-- Massive kinetic display -->
-            <h1 class="display-tight reveal-wonk mt-8 text-[clamp(3rem,11vw,9rem)] font-light text-[var(--ink)]">
-                <span class="block">Beasiswa</span>
-                <span class="block">tanpa
-                    <span class="display-italic font-light text-[var(--accent)]">tebak</span>—
-                    <span class="display-italic font-light text-[var(--accent)]">tebakan</span>.
-                </span>
-            </h1>
-
-            <!-- Lead paragraph + CTA in editorial 2-col grid -->
-            <div class="reveal mt-10 grid grid-cols-1 items-end gap-10 lg:grid-cols-12">
+            <div class="mt-8 grid grid-cols-1 items-end gap-12 lg:grid-cols-12 lg:gap-10">
+                <!-- LEFT: massive headline + lead + CTAs -->
                 <div class="lg:col-span-7">
-                    <p class="max-w-2xl text-lg leading-relaxed text-[var(--muted)] md:text-xl">
-                        Sebuah sistem pendukung keputusan untuk seleksi beasiswa Triv × MEXC
-                        Foundation. Dibangun di atas <strong class="text-[var(--foreground)]">metode Fuzzy
-                        Tsukamoto</strong> — bukan bobot tetap. Setiap skor punya jejak. Setiap
-                        keputusan dapat dipertanggungjawabkan.
+                    <h1 class="display-tight reveal text-[clamp(2.5rem,8vw,6.5rem)] text-[var(--ink)]">
+                        Beasiswa berbasis
+                        <span class="text-gradient-shimmer">angka,</span>
+                        bukan
+                        <span class="relative inline-block">
+                            tebakan.
+                            <svg
+                                class="pointer-events-none absolute -bottom-2 left-0 h-3 w-full text-[var(--primary)]"
+                                viewBox="0 0 200 12"
+                                fill="none"
+                                preserveAspectRatio="none"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="M2 8 Q 50 2, 100 6 T 198 4"
+                                    stroke="currentColor"
+                                    stroke-width="2.5"
+                                    stroke-linecap="round"
+                                    class="draw-path"
+                                    style="--length: 220"
+                                />
+                            </svg>
+                        </span>
+                    </h1>
+
+                    <p class="reveal mt-8 max-w-xl text-lg leading-relaxed text-[var(--muted)] md:text-xl" style="animation-delay: 120ms;">
+                        Sistem pendukung keputusan untuk seleksi beasiswa Triv × MEXC, dibangun di atas
+                        <strong class="text-[var(--foreground)]">metode Fuzzy Tsukamoto</strong> —
+                        bukan bobot tetap. Setiap skor punya jejak. Setiap keputusan dapat
+                        dipertanggungjawabkan.
                     </p>
 
-                    <div class="mt-8 flex flex-wrap items-center gap-3">
+                    <div class="reveal mt-9 flex flex-wrap items-center gap-3" style="animation-delay: 220ms;">
                         <Link
                             :href="route('register')"
-                            class="group inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3.5 text-sm font-medium text-[var(--accent-foreground)] transition-all hover:bg-[var(--accent-deep)] vermillion-glow"
+                            class="group inline-flex items-center gap-2 rounded-full bg-[var(--primary)] px-7 py-4 text-sm font-medium text-[var(--primary-foreground)] transition-all hover:bg-[var(--primary-dark)] glow-blue"
                         >
-                            Daftar sebagai mahasiswa
+                            Daftar gratis sebagai mahasiswa
                             <ArrowRight :size="16" class="transition-transform group-hover:translate-x-1" />
                         </Link>
 
                         <button
                             type="button"
-                            class="group inline-flex items-center gap-2 rounded-full border border-[var(--ink)] px-6 py-3.5 text-sm font-medium text-[var(--ink)] transition-all hover:bg-[var(--ink)] hover:text-[var(--paper)]"
+                            class="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-6 py-4 text-sm font-medium text-[var(--foreground)] transition-all hover:border-[var(--primary)] hover:text-[var(--primary)]"
                             @click="scrollTo('demo')"
                         >
-                            <span class="kinetic-word">
-                                <span>C</span><span>o</span><span>b</span><span>a</span>
-                            </span>
-                            demo interaktif
+                            <Sparkles :size="14" />
+                            Coba demo interaktif
                             <ArrowDown :size="14" class="transition-transform group-hover:translate-y-0.5" />
                         </button>
                     </div>
+
+                    <!-- trust strip -->
+                    <div class="reveal mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs text-[var(--muted)]" style="animation-delay: 320ms;">
+                        <div class="flex items-center gap-1.5">
+                            <ShieldCheck :size="14" class="text-[var(--success)]" />
+                            <span>Audit-trail lengkap</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <Lock :size="14" class="text-[var(--primary)]" />
+                            <span>Privacy by design</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <GitBranch :size="14" class="text-[var(--primary)]" />
+                            <span>Reproducible per-batch</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <Activity :size="14" class="text-[var(--primary)]" />
+                            <span>≤ 5 menit / 1.000 kandidat</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Hero card: a "live result" mock -->
-                <aside class="lg:col-span-5">
-                    <div class="paper-card relative overflow-hidden rounded-[var(--radius-card)] p-6 ink-shadow">
-                        <div class="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
-                            <span>Hasil seleksi</span>
-                            <span class="mono">SNAPSHOT #2026.05.20</span>
+                <!-- RIGHT: floating "live result" card -->
+                <aside class="reveal-scale lg:col-span-5" style="animation-delay: 200ms;">
+                    <div class="card-modern relative overflow-hidden p-7 shadow-floating">
+                        <div class="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[var(--primary-light)] opacity-60 blur-2xl"></div>
+
+                        <div class="relative flex items-center justify-between">
+                            <span class="mono text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                                LIVE_PREVIEW · MOCK
+                            </span>
+                            <span class="flex h-2 w-2 rounded-full bg-[var(--success)] pulse-ring"></span>
                         </div>
 
-                        <div class="mt-4 flex items-baseline gap-3">
-                            <span class="display-tight text-7xl font-semibold text-[var(--ink)]">{{ result.score.toFixed(2) }}</span>
-                            <span class="text-sm text-[var(--muted)]">/ 100</span>
+                        <p class="mt-5 text-sm text-[var(--muted)]">Skor kelayakan</p>
+                        <div class="flex items-baseline gap-2">
+                            <span class="display-tight stat-num text-7xl text-gradient-blue">
+                                {{ displayScore.toFixed(2) }}
+                            </span>
+                            <span class="text-base text-[var(--muted)]">/ 100</span>
                         </div>
-                        <p class="display-italic mt-1 text-2xl text-[var(--accent)]">{{ result.category }}</p>
 
-                        <div class="mt-6 space-y-2">
+                        <div
+                            class="cat-badge mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-white"
+                            :style="{ backgroundColor: result.badgeBg }"
+                        >
+                            <span class="flex h-1.5 w-1.5 rounded-full bg-white/80"></span>
+                            {{ result.category }}
+                        </div>
+
+                        <div class="mt-6 space-y-2.5 border-t border-[var(--border-subtle)] pt-5">
                             <div
                                 v-for="rule in result.rules"
-                                :key="rule.label"
-                                class="flex items-center gap-3 text-xs"
+                                :key="rule.code"
+                                class="grid grid-cols-[36px_1fr_44px] items-center gap-3 text-xs"
                             >
-                                <span class="mono w-44 truncate text-[var(--muted)]">{{ rule.label }}</span>
-                                <div class="relative h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--paper-deeper)]">
+                                <span class="mono font-medium" :style="{ color: rule.color }">
+                                    {{ rule.code }}
+                                </span>
+                                <div class="relative h-1.5 overflow-hidden rounded-full bg-[var(--border)]/50">
                                     <div
                                         class="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
-                                        :class="rule.fired ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'"
-                                        :style="{ width: `${Math.max(rule.alpha * 100, rule.fired ? 8 : 0)}%` }"
+                                        :style="{
+                                            width: `${Math.max(rule.alpha * 100, rule.alpha > 0 ? 6 : 0)}%`,
+                                            backgroundColor: rule.color,
+                                        }"
                                     ></div>
                                 </div>
-                                <span class="mono w-12 text-right text-[var(--foreground)]">α={{ rule.alpha.toFixed(2) }}</span>
+                                <span class="mono text-right tabular-nums text-[var(--muted)]">
+                                    α={{ rule.alpha.toFixed(2) }}
+                                </span>
                             </div>
                         </div>
 
-                        <p class="mt-6 border-t border-[var(--border-subtle)] pt-4 text-[11px] leading-relaxed text-[var(--muted)]">
-                            Hasil di atas <strong>live</strong> — geser slider di bagian
-                            <button class="text-[var(--accent)] underline" @click="scrollTo('demo')">demo</button>
-                            untuk melihat skor berubah real-time.
+                        <p class="mt-5 text-[11px] leading-relaxed text-[var(--muted)]">
+                            <Sparkles class="-mt-0.5 mr-0.5 inline-block h-3 w-3 text-[var(--primary)]" />
+                            Card ini live — geser slider di bawah untuk melihat skor & α berubah real-time.
                         </p>
                     </div>
                 </aside>
@@ -363,40 +517,49 @@ const tickerItems = [
         </section>
 
         <!-- =========================================================
-             MARQUEE — editorial ticker
+             MARQUEE TICKER
              ========================================================= -->
-        <section class="relative z-10 border-y border-[var(--border)] bg-[var(--paper)] py-5 overflow-hidden">
-            <div class="marquee-track">
+        <section class="relative z-10 border-y border-[var(--border)] bg-[var(--surface)] py-4 overflow-hidden">
+            <div class="marquee-track" aria-hidden="true">
                 <div
                     v-for="rep in 2"
                     :key="rep"
-                    class="flex items-center gap-12 pr-12 text-2xl text-[var(--ink)]"
-                    aria-hidden="true"
+                    class="flex items-center gap-10 pr-10"
                 >
                     <template v-for="(item, idx) in tickerItems" :key="`${rep}-${idx}`">
-                        <span class="display-italic whitespace-nowrap font-light">{{ item }}</span>
-                        <Asterisk class="h-5 w-5 flex-shrink-0 text-[var(--accent)]" :stroke-width="1.5" />
+                        <span class="font-display whitespace-nowrap text-2xl font-medium text-[var(--ink)]">
+                            {{ item }}
+                        </span>
+                        <span class="font-mono text-2xl text-[var(--primary)]">/</span>
                     </template>
                 </div>
             </div>
         </section>
 
         <!-- =========================================================
-             STATS — bento number tiles
+             STATS — bento grid with mouse-follow glow
              ========================================================= -->
-        <section class="relative z-10 mx-auto max-w-7xl px-6 py-20 lg:px-10">
-            <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <section class="relative z-10 mx-auto max-w-7xl px-6 py-24 lg:px-10">
+            <div class="mb-10 flex items-baseline justify-between">
+                <div>
+                    <span class="mono text-[10px] uppercase tracking-[0.25em] text-[var(--primary)]">/ 01 · DALAM ANGKA</span>
+                    <h2 class="display-tight mt-2 text-4xl text-[var(--ink)] md:text-5xl">
+                        Bukan klaim. <span class="text-[var(--primary)]">Pengukuran.</span>
+                    </h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div
                     v-for="(s, i) in stats"
                     :key="s.label"
-                    class="stat-tile reveal-slide"
+                    class="bento group p-6"
                     :style="{ animationDelay: `${i * 80}ms` }"
+                    @mousemove="bentoMouse"
                 >
-                    <div class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
-                        / {{ String(i + 1).padStart(2, "0") }}
-                    </div>
-                    <div class="mt-3 flex items-baseline gap-1">
-                        <span class="display-tight text-5xl font-semibold text-[var(--ink)]">{{ s.value }}</span>
+                    <component :is="s.icon" class="h-6 w-6 text-[var(--primary)] transition-transform group-hover:scale-110" :stroke-width="1.6" />
+                    <div class="mt-8 flex items-baseline gap-1">
+                        <span class="display-tight stat-num text-5xl text-[var(--ink)]">{{ s.value }}</span>
                         <span class="text-sm text-[var(--muted)]">{{ s.unit }}</span>
                     </div>
                     <p class="mt-2 text-sm text-[var(--foreground)]">{{ s.label }}</p>
@@ -405,31 +568,87 @@ const tickerItems = [
         </section>
 
         <!-- =========================================================
-             INTERACTIVE DEMO — geser slider untuk lihat skor live
+             INTERACTIVE DEMO — sliders + live SVG chart + result
              ========================================================= -->
         <section id="demo" class="relative z-10 mx-auto max-w-7xl px-6 py-20 lg:px-10">
-            <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-20">
-                <div class="lg:col-span-5">
-                    <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">/ 02 — DEMO</span>
-                    <h2 class="display-tight mt-3 text-5xl font-semibold text-[var(--ink)] md:text-6xl">
-                        Geser. Lihat
-                        <span class="display-italic text-[var(--accent)]">angkanya</span>
-                        bekerja.
+            <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+                <header class="lg:col-span-5">
+                    <span class="mono text-[10px] uppercase tracking-[0.25em] text-[var(--primary)]">/ 02 · DEMO</span>
+                    <h2 class="display-tight mt-2 text-5xl text-[var(--ink)] md:text-6xl">
+                        Geser. Mesin
+                        <span class="text-gradient-blue">menghitung.</span>
                     </h2>
                     <p class="mt-6 text-base leading-relaxed text-[var(--muted)]">
-                        Versi mini dari mesin asli. Tiga input, tiga rule simbolik. Skor akhir hasil
-                        defuzzifikasi weighted-average dari α-predikat per rule. Mesin produksi memakai
-                        5 variabel × 75 rule.
+                        Versi mini dari mesin produksi: 3 input → 3 rule → defuzzifikasi
+                        weighted-average. Mesin asli memakai 5 input × 75 rule, threshold dapat
+                        dikonfigurasi, dan setiap evaluasi dicatat untuk audit.
                     </p>
-                </div>
+
+                    <!-- Live IPK chart -->
+                    <div class="card-modern mt-8 p-5">
+                        <div class="flex items-center justify-between">
+                            <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">μ IPK</span>
+                            <span class="mono text-xs text-[var(--foreground)]">x = {{ ipk.toFixed(2) }}</span>
+                        </div>
+                        <svg
+                            :viewBox="`0 0 ${chartW} ${chartH}`"
+                            class="mt-3 h-32 w-full"
+                            role="img"
+                            aria-label="Kurva membership IPK"
+                        >
+                            <!-- Grid lines -->
+                            <g stroke="var(--border)" stroke-width="0.5" opacity="0.5">
+                                <line x1="0" :y1="chartH * 0.5" :x2="chartW" :y2="chartH * 0.5" stroke-dasharray="2 4" />
+                                <line :x1="chartW * 0.25" y1="0" :x2="chartW * 0.25" :y2="chartH" stroke-dasharray="2 4" />
+                                <line :x1="chartW * 0.5" y1="0" :x2="chartW * 0.5" :y2="chartH" stroke-dasharray="2 4" />
+                                <line :x1="chartW * 0.75" y1="0" :x2="chartW * 0.75" :y2="chartH" stroke-dasharray="2 4" />
+                            </g>
+                            <!-- Membership curves -->
+                            <path :d="ipkPathRendah()" stroke="var(--danger)" stroke-width="2" fill="none" stroke-linecap="round" />
+                            <path :d="ipkPathSedang()" stroke="var(--primary)" stroke-width="2" fill="none" stroke-linecap="round" />
+                            <path :d="ipkPathTinggi()" stroke="var(--success)" stroke-width="2" fill="none" stroke-linecap="round" />
+                            <!-- Vertical marker at current IPK -->
+                            <line
+                                :x1="ipkMarkerX"
+                                y1="0"
+                                :x2="ipkMarkerX"
+                                :y2="chartH"
+                                stroke="var(--ink)"
+                                stroke-width="1.5"
+                                stroke-dasharray="3 3"
+                                opacity="0.6"
+                            />
+                            <circle :cx="ipkMarkerX" :cy="chartH - memberships.ipk.rendah * (chartH - 12) - 6" r="4" fill="var(--danger)" />
+                            <circle :cx="ipkMarkerX" :cy="chartH - memberships.ipk.sedang * (chartH - 12) - 6" r="4" fill="var(--primary)" />
+                            <circle :cx="ipkMarkerX" :cy="chartH - memberships.ipk.tinggi * (chartH - 12) - 6" r="4" fill="var(--success)" />
+                        </svg>
+                        <div class="mono mt-2 flex justify-between text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                            <span>3,00</span><span>3,25</span><span>3,50</span><span>3,75</span><span>4,00</span>
+                        </div>
+                        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                            <div class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-[var(--danger)]"></span>
+                                <span class="mono text-[var(--muted)]">rendah · {{ memberships.ipk.rendah.toFixed(2) }}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-[var(--primary)]"></span>
+                                <span class="mono text-[var(--muted)]">sedang · {{ memberships.ipk.sedang.toFixed(2) }}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-[var(--success)]"></span>
+                                <span class="mono text-[var(--muted)]">tinggi · {{ memberships.ipk.tinggi.toFixed(2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
 
                 <div class="lg:col-span-7">
-                    <div class="paper-card rounded-[var(--radius-card)] p-6 lg:p-8 ink-shadow">
-                        <!-- IPK -->
+                    <div class="card-modern overflow-hidden p-6 shadow-floating lg:p-8">
+                        <!-- Sliders -->
                         <div>
                             <div class="flex items-baseline justify-between">
-                                <label class="text-sm font-medium text-[var(--foreground)]" for="d-ipk">IPK</label>
-                                <span class="mono text-2xl font-semibold text-[var(--accent)]">{{ ipk.toFixed(2) }}</span>
+                                <label for="d-ipk" class="text-sm font-medium text-[var(--foreground)]">IPK</label>
+                                <span class="mono stat-num text-2xl font-semibold text-[var(--primary)]">{{ ipk.toFixed(2) }}</span>
                             </div>
                             <input
                                 id="d-ipk"
@@ -440,19 +659,19 @@ const tickerItems = [
                                 step="0.01"
                                 class="fuzzy-slider mt-3"
                                 aria-label="IPK"
+                                :style="{ '--filled': `${((ipk - 3) / 1) * 100}%` }"
                             />
                             <div class="mono mt-2 flex justify-between text-[10px] uppercase tracking-wider text-[var(--muted)]">
                                 <span>3,00</span><span>3,50</span><span>4,00</span>
                             </div>
                         </div>
 
-                        <!-- Penghasilan -->
                         <div class="mt-7">
                             <div class="flex items-baseline justify-between">
-                                <label class="text-sm font-medium text-[var(--foreground)]" for="d-hsl">
+                                <label for="d-hsl" class="text-sm font-medium text-[var(--foreground)]">
                                     Penghasilan ortu <span class="text-xs text-[var(--muted)]">(juta/bulan)</span>
                                 </label>
-                                <span class="mono text-2xl font-semibold text-[var(--accent)]">{{ penghasilan.toFixed(1) }} jt</span>
+                                <span class="mono stat-num text-2xl font-semibold text-[var(--primary)]">{{ penghasilan.toFixed(1) }} jt</span>
                             </div>
                             <input
                                 id="d-hsl"
@@ -463,19 +682,19 @@ const tickerItems = [
                                 step="0.1"
                                 class="fuzzy-slider mt-3"
                                 aria-label="Penghasilan orang tua"
+                                :style="{ '--filled': `${((penghasilan - 1) / 14) * 100}%` }"
                             />
                             <div class="mono mt-2 flex justify-between text-[10px] uppercase tracking-wider text-[var(--muted)]">
                                 <span>1 jt</span><span>8 jt</span><span>15 jt</span>
                             </div>
                         </div>
 
-                        <!-- Prestasi -->
                         <div class="mt-7">
                             <div class="flex items-baseline justify-between">
-                                <label class="text-sm font-medium text-[var(--foreground)]" for="d-pa">
+                                <label for="d-pa" class="text-sm font-medium text-[var(--foreground)]">
                                     Prestasi akademis <span class="text-xs text-[var(--muted)]">(poin)</span>
                                 </label>
-                                <span class="mono text-2xl font-semibold text-[var(--accent)]">{{ prestasi }}</span>
+                                <span class="mono stat-num text-2xl font-semibold text-[var(--primary)]">{{ prestasi }}</span>
                             </div>
                             <input
                                 id="d-pa"
@@ -486,143 +705,188 @@ const tickerItems = [
                                 step="1"
                                 class="fuzzy-slider mt-3"
                                 aria-label="Prestasi akademis"
+                                :style="{ '--filled': `${(prestasi / 50) * 100}%` }"
                             />
                             <div class="mono mt-2 flex justify-between text-[10px] uppercase tracking-wider text-[var(--muted)]">
                                 <span>0</span><span>25</span><span>50</span>
                             </div>
                         </div>
 
-                        <!-- Live result strip -->
-                        <div class="mt-8 flex items-center justify-between rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--paper-deeper)] px-5 py-4">
+                        <!-- Result strip -->
+                        <div class="mt-8 grid grid-cols-1 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--primary-light)] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
                             <div>
-                                <p class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">Skor akhir</p>
-                                <p class="display-tight mt-1 text-4xl font-semibold text-[var(--ink)]">
-                                    {{ result.score.toFixed(2) }}
+                                <p class="mono text-[10px] uppercase tracking-[0.22em] text-[var(--primary-dark)]">SKOR DEFUZZIFIKASI</p>
+                                <p class="display-tight stat-num mt-1 text-5xl text-[var(--ink)]">
+                                    {{ displayScore.toFixed(2) }}
                                 </p>
                             </div>
                             <div
-                                class="display-italic rounded-full px-4 py-2 text-sm font-medium transition-colors"
-                                :style="{ background: result.color, color: 'var(--paper)' }"
+                                class="cat-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white"
+                                :style="{ backgroundColor: result.badgeBg }"
                             >
+                                <span class="flex h-1.5 w-1.5 rounded-full bg-white/80"></span>
                                 {{ result.category }}
                             </div>
                         </div>
 
-                        <p class="mt-3 text-xs text-[var(--muted)]">
-                            <Sparkles class="-mt-0.5 mr-1 inline-block h-3 w-3" />
-                            Demo memakai 3 dari 75 rule asli. Mesin produksi punya 5 input.
-                        </p>
+                        <!-- Rule eval table mini -->
+                        <details class="mt-4 group">
+                            <summary class="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs text-[var(--muted)] hover:bg-[var(--primary-light)] hover:text-[var(--primary)]">
+                                <span class="mono uppercase tracking-wider">Show rule evaluations</span>
+                                <Plus :size="14" class="group-open:hidden" />
+                                <Minus :size="14" class="hidden group-open:block" />
+                            </summary>
+                            <div class="mt-3 space-y-2 px-3 text-xs">
+                                <div
+                                    v-for="r in result.rules"
+                                    :key="r.code"
+                                    class="grid grid-cols-[40px_1fr_60px_60px] items-center gap-3"
+                                >
+                                    <span class="mono font-medium" :style="{ color: r.color }">{{ r.code }}</span>
+                                    <span class="text-[var(--muted)]">{{ r.label }}</span>
+                                    <span class="mono text-right text-[var(--foreground)]">α {{ r.alpha.toFixed(3) }}</span>
+                                    <span class="mono text-right text-[var(--foreground)]">z {{ r.z.toFixed(2) }}</span>
+                                </div>
+                            </div>
+                        </details>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- =========================================================
-             HOW IT WORKS — editorial step bento
+             HOW IT WORKS — bento steps with arrows
              ========================================================= -->
-        <section id="how" class="relative z-10 mx-auto max-w-7xl px-6 py-20 lg:px-10">
+        <section id="how" class="relative z-10 mx-auto max-w-7xl px-6 py-24 lg:px-10">
             <div class="flex items-baseline justify-between">
-                <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">/ 03 — CARA KERJA</span>
-                <span class="mono hidden text-[10px] uppercase tracking-[0.2em] text-[var(--muted)] sm:inline">4 fase · deterministik</span>
+                <div>
+                    <span class="mono text-[10px] uppercase tracking-[0.25em] text-[var(--primary)]">/ 03 · ALUR</span>
+                    <h2 class="display-tight mt-2 text-5xl text-[var(--ink)] md:text-6xl">
+                        Empat fase. <span class="text-gradient-blue">Deterministik.</span>
+                    </h2>
+                </div>
+                <span class="mono hidden text-[10px] uppercase tracking-[0.2em] text-[var(--muted)] md:inline">~ 5 menit / batch</span>
             </div>
 
-            <h2 class="display-tight mt-3 max-w-4xl text-5xl font-semibold text-[var(--ink)] md:text-6xl">
-                Dari pendaftaran sampai
-                <span class="display-italic text-[var(--accent)]">audit-trail</span>.
-            </h2>
-
-            <div class="mt-12 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div class="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <article
                     v-for="(step, i) in [
-                        { n: '01', title: 'Daftar', body: 'Mahasiswa isi profil & maks 5 prestasi. Admin approve / reject dengan alasan.' },
-                        { n: '02', title: 'Konfigurasi', body: 'Admin atur parameter himpunan (a, b, c) — disnapshot saat batch dijalankan.' },
-                        { n: '03', title: 'Run', body: 'Worker auto-spawn, eligibility 4-gate, fuzzifikasi, inferensi 75-rule, defuzzifikasi.' },
-                        { n: '04', title: 'Audit', body: 'Skor + α tiap rule + z tersimpan. Ekspor CSV / PDF dengan footer reproducibility.' }
+                        { n: '01', title: 'Daftar', body: 'Mahasiswa isi profil & maks 5 prestasi. Admin approve / reject dengan alasan tertulis.', icon: UsersRound },
+                        { n: '02', title: 'Konfigurasi', body: 'Admin atur parameter himpunan (a, b, c) per kriteria. Validasi monotonik aktif.', icon: BookOpenCheck },
+                        { n: '03', title: 'Run', body: 'Worker auto-spawn, eligibility 4-gate, fuzzifikasi, inferensi 75-rule, defuzzifikasi.', icon: Cpu },
+                        { n: '04', title: 'Audit', body: 'Skor + α tiap rule + z tersimpan. Export CSV / PDF dengan footer reproducibility.', icon: ShieldCheck },
                     ]"
                     :key="step.n"
-                    class="bento-card group p-6"
-                    :style="{ animationDelay: `${i * 60}ms` }"
+                    class="bento group p-6"
+                    @mousemove="bentoMouse"
                 >
                     <div class="flex items-center justify-between">
-                        <span class="mono text-3xl font-semibold text-[var(--accent)]">{{ step.n }}</span>
-                        <ArrowUpRight :size="18" class="text-[var(--muted)] transition-all group-hover:text-[var(--accent)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                        <span class="mono text-3xl font-semibold text-[var(--primary)]">{{ step.n }}</span>
+                        <component :is="step.icon" class="h-5 w-5 text-[var(--muted)] transition-colors group-hover:text-[var(--primary)]" :stroke-width="1.6" />
                     </div>
-                    <h3 class="display-tight mt-6 text-3xl font-semibold text-[var(--ink)]">{{ step.title }}</h3>
+                    <h3 class="display-clean mt-7 text-2xl font-semibold text-[var(--ink)]">{{ step.title }}</h3>
                     <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">{{ step.body }}</p>
+                    <div class="mt-6 flex items-center gap-1.5 text-xs font-medium text-[var(--primary)] opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1">
+                        Detail <ArrowRight :size="12" />
+                    </div>
                 </article>
             </div>
         </section>
 
         <!-- =========================================================
-             METHODOLOGY — vermillion break + offset card
+             METHODOLOGY — dark inverted block + formula
              ========================================================= -->
-        <section class="relative z-10 my-12 overflow-hidden bg-[var(--ink)] py-24 text-[var(--paper)]">
-            <div
-                class="pointer-events-none absolute inset-0 bg-grid-dot opacity-10"
-                aria-hidden="true"
-            ></div>
+        <section id="method" class="relative z-10 my-12">
+            <div class="mx-auto max-w-7xl px-6 lg:px-10">
+                <div class="relative overflow-hidden rounded-[var(--radius-card)] bg-[var(--ink)] p-10 text-white shadow-floating md:p-16">
+                    <div class="pointer-events-none absolute inset-0 bg-grid-dot opacity-20" aria-hidden="true"></div>
+                    <div
+                        class="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full opacity-30 blur-3xl"
+                        :style="{ background: 'radial-gradient(closest-side, var(--primary), transparent)' }"
+                        aria-hidden="true"
+                    ></div>
 
-            <div class="relative mx-auto max-w-7xl px-6 lg:px-10">
-                <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">/ METODE</span>
-                <h2 class="display-tight mt-3 max-w-4xl text-5xl font-light md:text-7xl">
-                    <span class="display-italic font-light text-[var(--accent)]">Tsukamoto</span>,
-                    bukan Mamdani.
-                </h2>
-                <p class="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--paper-deeper)] opacity-90">
-                    Setiap rule punya <em class="display-italic text-[var(--paper)]">consequent monotonik</em>.
-                    Output bukan distribusi tapi nilai z yang dapat dihitung balik. Defuzzifikasi
-                    weighted-average:
-                </p>
+                    <div class="relative">
+                        <span class="mono text-[10px] uppercase tracking-[0.25em] text-[var(--accent)]">/ METODE INFERENSI</span>
+                        <h2 class="display-tight mt-3 max-w-4xl text-5xl md:text-7xl">
+                            <span class="text-gradient-blue">Tsukamoto,</span>
+                            bukan Mamdani.
+                        </h2>
+                        <p class="mt-6 max-w-2xl text-lg leading-relaxed text-white/70">
+                            Setiap rule punya <em class="not-italic font-medium text-white">consequent monotonik</em>.
+                            Output bukan distribusi tapi nilai z yang dapat dihitung balik. Defuzzifikasi
+                            weighted-average:
+                        </p>
 
-                <!-- Formula -->
-                <div class="mono mt-8 inline-block rounded-[var(--radius-card)] border border-[var(--paper-deeper)] bg-transparent px-6 py-5 text-2xl text-[var(--paper)]">
-                    Z = Σ(αᵢ × zᵢ) / Σ(αᵢ)
-                </div>
+                        <!-- Formula card -->
+                        <div class="mt-8 inline-flex items-baseline gap-3 rounded-2xl border border-white/15 bg-white/5 px-7 py-5 backdrop-blur">
+                            <span class="display-tight text-3xl text-white md:text-4xl">Z</span>
+                            <span class="display-tight text-3xl text-white/40 md:text-4xl">=</span>
+                            <div class="flex flex-col items-center">
+                                <span class="mono text-base text-white md:text-lg">
+                                    Σ(αᵢ × zᵢ)
+                                </span>
+                                <span class="block h-px w-full bg-white/40"></span>
+                                <span class="mono text-base text-white md:text-lg">
+                                    Σ(αᵢ)
+                                </span>
+                            </div>
+                        </div>
 
-                <!-- Two columns of detail -->
-                <div class="mt-12 grid grid-cols-1 gap-10 md:grid-cols-2">
-                    <div>
-                        <h3 class="display-tight text-2xl font-medium text-[var(--paper)]">5 variabel input</h3>
-                        <ul class="mono mt-4 space-y-2 text-sm text-[var(--paper-deeper)] opacity-80">
-                            <li>· IPK <span class="text-[var(--paper)]">(3,00–4,00)</span></li>
-                            <li>· Penghasilan ortu <span class="text-[var(--paper)]">(0–15 jt)</span></li>
-                            <li>· Prestasi akademis <span class="text-[var(--paper)]">(0–50)</span></li>
-                            <li>· Prestasi non-akademis <span class="text-[var(--paper)]">(0–50)</span></li>
-                            <li>· Tanggungan keluarga <span class="text-[var(--paper)]">(0–8)</span></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 class="display-tight text-2xl font-medium text-[var(--paper)]">3 kategori output</h3>
-                        <ul class="mt-4 space-y-2 text-sm text-[var(--paper-deeper)] opacity-80">
-                            <li><span class="display-italic text-[var(--accent)]">Layak</span> — z ≥ threshold₂ (default 75)</li>
-                            <li><span class="display-italic text-[var(--paper)]">Dipertimbangkan</span> — threshold₁ ≤ z &lt; threshold₂</li>
-                            <li><span class="display-italic text-[var(--paper-deeper)]">Tidak Layak</span> — z &lt; threshold₁ (default 50)</li>
-                        </ul>
+                        <!-- Two columns -->
+                        <div class="mt-12 grid grid-cols-1 gap-10 md:grid-cols-2">
+                            <div>
+                                <h3 class="display-clean text-xl font-medium text-white">5 variabel input</h3>
+                                <ul class="mono mt-4 space-y-2 text-sm text-white/70">
+                                    <li>· IPK <span class="text-white">(3,00–4,00)</span></li>
+                                    <li>· Penghasilan ortu <span class="text-white">(0–15 jt)</span></li>
+                                    <li>· Prestasi akademis <span class="text-white">(0–50)</span></li>
+                                    <li>· Prestasi non-akademis <span class="text-white">(0–50)</span></li>
+                                    <li>· Tanggungan keluarga <span class="text-white">(0–8)</span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 class="display-clean text-xl font-medium text-white">3 kategori output</h3>
+                                <ul class="mt-4 space-y-2 text-sm text-white/70">
+                                    <li>
+                                        <span class="inline-flex h-2 w-2 -translate-y-0.5 rounded-full bg-[var(--success)] mr-2"></span>
+                                        <span class="text-white">Layak</span> — z ≥ threshold₂ (default 75)
+                                    </li>
+                                    <li>
+                                        <span class="inline-flex h-2 w-2 -translate-y-0.5 rounded-full bg-[var(--primary)] mr-2"></span>
+                                        <span class="text-white">Dipertimbangkan</span> — threshold₁ ≤ z &lt; threshold₂
+                                    </li>
+                                    <li>
+                                        <span class="inline-flex h-2 w-2 -translate-y-0.5 rounded-full bg-[var(--danger)] mr-2"></span>
+                                        <span class="text-white">Tidak Layak</span> — z &lt; threshold₁ (default 50)
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- =========================================================
-             FAQ — accordion editorial
+             FAQ
              ========================================================= -->
-        <section id="faq" class="relative z-10 mx-auto max-w-4xl px-6 py-20 lg:px-10">
-            <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">/ 04 — TANYA JAWAB</span>
-            <h2 class="display-tight mt-3 text-5xl font-semibold text-[var(--ink)] md:text-6xl">
-                Mungkin kamu
-                <span class="display-italic text-[var(--accent)]">bertanya-tanya</span>.
+        <section id="faq" class="relative z-10 mx-auto max-w-4xl px-6 py-24 lg:px-10">
+            <span class="mono text-[10px] uppercase tracking-[0.25em] text-[var(--primary)]">/ 04 · TANYA</span>
+            <h2 class="display-tight mt-2 text-5xl text-[var(--ink)] md:text-6xl">
+                Mungkin kamu <span class="text-[var(--primary)]">bertanya-tanya.</span>
             </h2>
 
             <div class="mt-10 divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 <div v-for="(item, i) in faqs" :key="i">
                     <button
                         type="button"
-                        class="group flex w-full items-baseline justify-between gap-6 py-6 text-left transition-colors hover:text-[var(--accent)]"
+                        class="group flex w-full items-baseline justify-between gap-6 py-6 text-left transition-colors hover:text-[var(--primary)]"
                         :aria-expanded="openFaq === i"
                         @click="openFaq = openFaq === i ? -1 : i"
                     >
-                        <span class="display-tight text-2xl font-medium md:text-3xl">{{ item.q }}</span>
-                        <span class="mt-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--border)] transition-all group-hover:border-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-[var(--paper)]">
+                        <span class="display-clean text-2xl font-medium md:text-3xl">{{ item.q }}</span>
+                        <span class="mt-1 grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--border)] transition-all group-hover:border-[var(--primary)] group-hover:bg-[var(--primary)] group-hover:text-white">
                             <Plus v-if="openFaq !== i" :size="16" />
                             <Minus v-else :size="16" />
                         </span>
@@ -646,38 +910,40 @@ const tickerItems = [
         </section>
 
         <!-- =========================================================
-             FINAL CTA — bold vermillion editorial banner
+             FINAL CTA — hero blue gradient
              ========================================================= -->
         <section class="relative z-10 mx-auto max-w-7xl px-6 py-20 lg:px-10">
-            <div class="relative overflow-hidden rounded-[var(--radius-card)] bg-[var(--accent)] p-10 md:p-16 vermillion-glow">
-                <div class="pointer-events-none absolute inset-0 bg-grid-dot opacity-15" aria-hidden="true"></div>
-
-                <Asterisk class="absolute right-12 top-12 h-16 w-16 text-[var(--accent-deep)] spin-slow" :stroke-width="1.5" />
+            <div class="relative overflow-hidden rounded-[var(--radius-card)] p-10 md:p-16">
+                <div class="absolute inset-0 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)]"></div>
+                <div class="pointer-events-none absolute inset-0 bg-grid-dot opacity-20" aria-hidden="true"></div>
+                <div
+                    class="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full opacity-40 blur-3xl"
+                    :style="{ background: 'radial-gradient(closest-side, var(--accent), transparent)' }"
+                    aria-hidden="true"
+                ></div>
 
                 <div class="relative">
-                    <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--accent-foreground)] opacity-80">
-                        / 05 — MULAI
-                    </span>
-                    <h2 class="display-tight mt-3 max-w-3xl text-5xl font-semibold text-[var(--accent-foreground)] md:text-7xl">
-                        Daftar sekarang.
-                        <span class="display-italic block opacity-90">Verifikasi dalam 24 jam.</span>
+                    <span class="mono text-[10px] uppercase tracking-[0.25em] text-white/80">/ 05 · MULAI</span>
+                    <h2 class="display-tight mt-3 max-w-3xl text-5xl text-white md:text-7xl">
+                        Daftar sekarang.<br />
+                        <span class="opacity-90">Verifikasi dalam 24 jam.</span>
                     </h2>
-                    <p class="mt-6 max-w-xl text-lg leading-relaxed text-[var(--accent-foreground)] opacity-85">
-                        Setelah disetujui admin, kamu bisa mengisi prestasi & data, lalu menunggu hasil
-                        seleksi terbaru. Status & ranking publik tersedia di dashboard.
+                    <p class="mt-6 max-w-xl text-lg leading-relaxed text-white/85">
+                        Setelah disetujui admin, kamu bisa mengisi prestasi & data, lalu menunggu
+                        hasil seleksi terbaru. Status & ranking publik tersedia di dashboard.
                     </p>
 
                     <div class="mt-10 flex flex-wrap items-center gap-3">
                         <Link
                             :href="route('register')"
-                            class="group inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-7 py-4 text-sm font-medium text-[var(--paper)] transition-all hover:bg-[var(--paper)] hover:text-[var(--ink)]"
+                            class="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-medium text-[var(--primary-dark)] transition-all hover:bg-[var(--ink)] hover:text-white"
                         >
                             Daftar gratis
-                            <ArrowUpRight :size="16" class="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                            <ArrowUpRight :size="16" class="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                         </Link>
                         <Link
                             :href="route('login')"
-                            class="text-sm font-medium text-[var(--accent-foreground)] underline-offset-4 hover:underline"
+                            class="text-sm font-medium text-white underline-offset-4 hover:underline"
                         >
                             Sudah punya akun? Masuk →
                         </Link>
@@ -687,15 +953,20 @@ const tickerItems = [
         </section>
 
         <!-- =========================================================
-             FOOTER — masthead-style colophon
+             FOOTER
              ========================================================= -->
         <footer class="relative z-10 mx-auto max-w-7xl px-6 pb-16 pt-10 lg:px-10">
-            <div class="flex flex-col gap-10 border-t border-[var(--border)] pt-10 md:flex-row md:items-start md:justify-between">
+            <div class="flex flex-col gap-10 border-t border-[var(--border)] pt-12 md:flex-row md:items-start md:justify-between">
                 <div class="max-w-md">
-                    <p class="display-italic text-2xl font-medium text-[var(--accent)]">
-                        Trimexas<sup class="text-xs">®</sup>
-                    </p>
-                    <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+                    <div class="flex items-center gap-2.5">
+                        <span class="grid h-8 w-8 place-items-center rounded-lg bg-[var(--primary)] text-white">
+                            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 17 L10 7 L13 13 L19 5" />
+                            </svg>
+                        </span>
+                        <span class="font-display text-lg font-semibold tracking-tight">Trimexas</span>
+                    </div>
+                    <p class="mt-4 text-sm leading-relaxed text-[var(--muted)]">
                         Sistem Pendukung Keputusan beasiswa berbasis Fuzzy Tsukamoto.
                         Dibangun untuk Praktikum AI Semester 4 — Kelompok 4.
                     </p>
@@ -722,7 +993,7 @@ const tickerItems = [
 
             <div class="mono mt-10 flex flex-col items-start justify-between gap-3 text-[10px] uppercase tracking-[0.2em] text-[var(--muted)] md:flex-row">
                 <span>© 2026 Trimexas — All rights observed</span>
-                <span>Made with deliberate intent · Vol.01 / MVP / 2026</span>
+                <span>v1.0 · Built with deliberate precision</span>
             </div>
         </footer>
     </main>

@@ -38,8 +38,8 @@ function submit() {
                 >
                     ← Kembali ke beranda
                 </Link>
-                <h1 class="display-tight text-5xl font-semibold tracking-tight text-[var(--ink)]">
-                    Masuk ke <span class="display-italic text-[var(--accent)]">Trimexas</span>
+                <h1 class="display-tight text-5xl tracking-tight text-[var(--ink)]">
+                    Masuk ke <span class="text-gradient-blue">Trimexas</span>
                 </h1>
                 <p class="mt-2 text-sm text-[var(--muted)]">
                     Sistem Pendukung Keputusan Beasiswa Triv × MEXC
