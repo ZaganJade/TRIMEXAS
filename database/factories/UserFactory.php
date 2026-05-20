@@ -42,4 +42,37 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'role' => User::ROLE_ADMIN,
+            'approval_status' => User::STATUS_APPROVED,
+        ]);
+    }
+
+    public function mahasiswa(): static
+    {
+        return $this->state(fn () => [
+            'role' => User::ROLE_MAHASISWA,
+            'approval_status' => User::STATUS_APPROVED,
+        ]);
+    }
+
+    public function pending(): static
+    {
+        return $this->state(fn () => [
+            'role' => User::ROLE_MAHASISWA,
+            'approval_status' => User::STATUS_PENDING,
+        ]);
+    }
+
+    public function rejected(string $reason = 'Data tidak sesuai persyaratan beasiswa.'): static
+    {
+        return $this->state(fn () => [
+            'role' => User::ROLE_MAHASISWA,
+            'approval_status' => User::STATUS_REJECTED,
+            'rejection_reason' => $reason,
+        ]);
+    }
 }

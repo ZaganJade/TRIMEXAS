@@ -12,7 +12,7 @@ import {
     SunMedium,
     MoonStar,
     ArrowRight,
-} from "@lucide/vue";
+} from "lucide-vue-next";
 import Button from "@/components/ui/Button.vue";
 
 defineProps({
