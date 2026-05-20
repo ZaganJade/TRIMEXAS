@@ -1,6 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { Bell } from "lucide-vue-next";
+import { Bell } from "@lucide/vue";
 
 const open = ref(false);
 const notifications = ref([]);

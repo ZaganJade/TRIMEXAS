@@ -334,7 +334,7 @@ docker compose up -d --build --force-recreate
 
 **Solusi:**
 
-Edit `vite.config.ts`, tambahkan `usePolling`:
+Edit `vite.config.js`, tambahkan `usePolling`:
 
 ```ts
 server: {
