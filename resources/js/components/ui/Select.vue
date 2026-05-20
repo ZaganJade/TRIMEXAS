@@ -11,7 +11,7 @@ import {
     SelectItemIndicator,
     SelectItemText,
 } from "radix-vue";
-import { ChevronDown, Check } from "lucide-vue-next";
+import { ChevronDown, Check } from "@lucide/vue";
 import { cn } from "@/lib/utils";
 
 defineProps({

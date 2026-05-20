@@ -3,6 +3,7 @@
 namespace App\Actions\Admin;
 
 use App\Models\User;
+use App\Notifications\AccountRejectedNotification;
 use Illuminate\Support\Facades\DB;
 
 class RejectStudentAction
@@ -22,6 +23,8 @@ class RejectStudentAction
         }
 
         return DB::transaction(function () use ($student, $admin, $reason): User {
+            $previous = $student->approval_status;
+
             $student->forceFill([
                 'approval_status' => User::STATUS_REJECTED,
                 'rejection_reason' => $reason,
@@ -29,7 +32,17 @@ class RejectStudentAction
                 'approved_at' => now(),
             ])->save();
 
-            // TODO M4 (8.5): dispatch AccountRejectedNotification.
+            activity('user')
+                ->causedBy($admin)
+                ->performedOn($student)
+                ->event('rejected')
+                ->withProperties([
+                    'attributes' => ['approval_status' => User::STATUS_REJECTED, 'rejection_reason' => $reason],
+                    'old' => ['approval_status' => $previous],
+                ])
+                ->log('Student rejected');
+
+            $student->refresh()->notify(new AccountRejectedNotification($reason));
 
             return $student->refresh();
         });

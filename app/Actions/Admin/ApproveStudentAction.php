@@ -3,6 +3,7 @@
 namespace App\Actions\Admin;
 
 use App\Models\User;
+use App\Notifications\AccountApprovedNotification;
 use Illuminate\Support\Facades\DB;
 
 class ApproveStudentAction
@@ -19,6 +20,8 @@ class ApproveStudentAction
         }
 
         return DB::transaction(function () use ($student, $admin): User {
+            $previous = $student->approval_status;
+
             $student->forceFill([
                 'approval_status' => User::STATUS_APPROVED,
                 'rejection_reason' => null,
@@ -26,7 +29,17 @@ class ApproveStudentAction
                 'approved_at' => now(),
             ])->save();
 
-            // TODO M4 (8.5): dispatch AccountApprovedNotification.
+            activity('user')
+                ->causedBy($admin)
+                ->performedOn($student)
+                ->event('approved')
+                ->withProperties([
+                    'attributes' => ['approval_status' => User::STATUS_APPROVED],
+                    'old' => ['approval_status' => $previous],
+                ])
+                ->log('Student approved');
+
+            $student->refresh()->notify(new AccountApprovedNotification($admin));
 
             return $student->refresh();
         });

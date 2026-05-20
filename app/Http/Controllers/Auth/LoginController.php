@@ -58,6 +58,11 @@ class LoginController extends Controller
         RateLimiter::clear($request->throttleKey());
         $request->session()->regenerate();
 
+        activity('auth')
+            ->causedBy($user)
+            ->event('login')
+            ->log($user->isAdmin() ? 'Admin login' : 'Mahasiswa login');
+
         return redirect()->intended($this->dashboardRouteFor($user));
     }
 
