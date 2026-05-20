@@ -1,0 +1,15 @@
+# Build artifacts
+public/build/
+public/hot
+node_modules/
+vendor/
+storage/
+
+# Lockfiles
+*.lock
+package-lock.json
+composer.lock
+
+# Generated
+*.min.js
+*.min.css
