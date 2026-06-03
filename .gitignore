@@ -29,3 +29,7 @@ Thumbs.db
 .cursor
 docs
 openspec
+.claude
+research.md
+progress.md
+context.md

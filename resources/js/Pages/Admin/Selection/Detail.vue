@@ -1,7 +1,7 @@
 <script setup>
-import { Head, Link, useForm, router } from "@inertiajs/vue3";
+import { Head, Link, router } from "@inertiajs/vue3";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import Button from "@/components/ui/Button.vue";
+import AdminLayout from "@/Layouts/AdminLayout.vue";
 import Card from "@/components/ui/Card.vue";
 
 const props = defineProps({
@@ -33,11 +33,10 @@ async function poll() {
 
         if (json.status === "completed" || json.status === "failed") {
             stopPoll();
-            // refresh page to load full ranking
             router.reload({ preserveScroll: true });
         }
     } catch (_) {
-        // ignore — try again next tick
+        // ignore
     }
 }
 
@@ -58,68 +57,53 @@ onMounted(() => {
 });
 
 onBeforeUnmount(stopPoll);
-
-const logoutForm = useForm({});
-function logout() {
-    logoutForm.post(route("logout"));
-}
 </script>
 
 <template>
     <Head :title="`Batch ${batch.label}`" />
-
-    <div class="min-h-screen bg-[var(--background)]">
-        <header class="border-b border-[var(--border)]">
-            <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-                <Link :href="route('admin.dashboard')" class="font-display text-lg font-semibold tracking-tight">
-                    Trimexas <span class="text-[var(--muted)] text-sm font-normal">/ Admin</span>
-                </Link>
-                <Button variant="ghost" size="sm" @click="logout">Logout</Button>
+    <AdminLayout active="selection">
+        <div class="window">
+            <div class="window-bar">
+                <span class="window-dot" />
+                <span class="window-dot" />
+                <span class="window-dot" />
+                <span class="window-title">{{ batch.label }}</span>
             </div>
-        </header>
-
-        <main class="mx-auto max-w-6xl px-6 py-10">
-            <div class="flex items-baseline justify-between">
-                <div>
-                    <h1 class="font-display text-3xl font-semibold tracking-tight">
-                        {{ batch.label }}
-                    </h1>
-                    <p class="mt-1 text-sm text-[var(--muted)]">
-                        Status: <span class="font-medium uppercase">{{ status }}</span>
-                        · {{ processed }} / {{ total }} kandidat
-                    </p>
-                </div>
+            <div class="window-body flex items-baseline justify-between">
+                <p class="text-sm text-[var(--muted)]">
+                    Status: <span class="tag tag-primary mono uppercase">{{ status }}</span>
+                    · <span class="mono tnum">{{ processed }} / {{ total }}</span> kandidat
+                </p>
                 <Link
-                    v-if="!isRunning"
+                    v-if="!isRunning && results.length"
                     :href="route('admin.selection.audit', { batch: batch.id, candidate: results[0]?.student_id ?? 0 })"
                     class="text-sm text-[var(--primary)] hover:underline"
                 >
                     Audit kandidat teratas →
                 </Link>
             </div>
+        </div>
 
-            <Card v-if="isRunning" variant="elevated" class="mt-6 p-6">
-                <p class="text-sm font-medium">Memproses kandidat…</p>
-                <div class="mt-2 h-2 overflow-hidden rounded-full bg-[var(--border)]">
-                    <div
-                        class="h-2 rounded-full bg-[var(--primary)] transition-all"
-                        :style="{ width: `${percentage}%` }"
-                    ></div>
-                </div>
-                <p class="mt-2 text-xs text-[var(--muted)]">{{ percentage }}%</p>
-            </Card>
+        <Card v-if="isRunning" variant="elevated" class="mt-6 p-6">
+            <p class="text-sm font-medium">Memproses kandidat…</p>
+            <div class="meter mt-3">
+                <i :style="{ width: `${percentage}%` }"></i>
+            </div>
+            <p class="mt-2 text-xs text-[var(--muted)] mono">{{ percentage }}%</p>
+        </Card>
 
-            <Card v-if="errorSummary" variant="outline" class="mt-4 p-4 border-red-300/40 bg-red-50/40">
-                <p class="font-medium text-red-700">Batch gagal</p>
-                <pre class="mt-2 text-xs text-red-700">{{ errorSummary }}</pre>
-            </Card>
+        <Card v-if="errorSummary" variant="outline" class="mt-4 p-4 border-red-300/40 bg-red-50/40">
+            <p class="font-medium text-red-700">Batch gagal</p>
+            <pre class="mt-2 text-xs text-red-700 mono">{{ errorSummary }}</pre>
+        </Card>
 
-            <Card variant="elevated" class="mt-6 overflow-hidden">
-                <div class="border-b border-[var(--border)] bg-[var(--primary-soft)]/40 px-4 py-2 text-xs uppercase tracking-wide text-[var(--muted)]">
-                    Ranking ({{ results.length }} kandidat eligible)
-                </div>
+        <div class="window mt-6">
+            <div class="window-bar">
+                <span class="window-title text-xs">Ranking ({{ results.length }} kandidat eligible)</span>
+            </div>
+            <div class="window-body p-0 overflow-auto">
                 <table class="w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)]">
                         <tr>
                             <th class="px-4 py-3">#</th>
                             <th class="px-4 py-3">Nama</th>
@@ -130,18 +114,20 @@ function logout() {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--border)]">
-                        <tr v-for="r in results" :key="r.student_id">
-                            <td class="px-4 py-3 font-medium">{{ r.rank }}</td>
-                            <td class="px-4 py-3">{{ r.name }}</td>
-                            <td class="px-4 py-3 text-[var(--muted)]">{{ r.nim }}</td>
-                            <td class="px-4 py-3 text-right font-mono">
+                        <tr v-for="r in results" :key="r.student_id" class="rank-row">
+                            <td class="px-4 py-3 rank-pos mono">{{ r.rank }}</td>
+                            <td class="px-4 py-3 font-medium">{{ r.name }}</td>
+                            <td class="px-4 py-3 text-[var(--muted)] mono">{{ r.nim }}</td>
+                            <td class="px-4 py-3 text-right mono tnum">
                                 {{ Number(r.score).toFixed(2) }}
                             </td>
-                            <td class="px-4 py-3 capitalize">{{ r.category }}</td>
+                            <td class="px-4 py-3">
+                                <span class="tag tag-success capitalize">{{ r.category }}</span>
+                            </td>
                             <td class="px-4 py-3">
                                 <Link
                                     :href="route('admin.selection.audit', { batch: batch.id, candidate: r.student_id })"
-                                    class="text-[var(--primary)] hover:underline"
+                                    class="text-[var(--primary)] hover:underline text-sm"
                                 >
                                     Audit
                                 </Link>
@@ -154,14 +140,16 @@ function logout() {
                         </tr>
                     </tbody>
                 </table>
-            </Card>
+            </div>
+        </div>
 
-            <Card v-if="ineligible.length" variant="outline" class="mt-6 overflow-hidden">
-                <div class="border-b border-[var(--border)] bg-[#FEF3C7]/40 px-4 py-2 text-xs uppercase tracking-wide text-[var(--muted)]">
-                    Tidak Memenuhi Syarat ({{ ineligible.length }})
-                </div>
+        <div v-if="ineligible.length" class="window mt-6">
+            <div class="window-bar bg-[var(--warning)]/20">
+                <span class="window-title text-xs">Tidak Memenuhi Syarat ({{ ineligible.length }})</span>
+            </div>
+            <div class="window-body p-0 overflow-auto">
                 <table class="w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)]">
                         <tr>
                             <th class="px-4 py-3">Nama</th>
                             <th class="px-4 py-3">NIM</th>
@@ -170,17 +158,17 @@ function logout() {
                     </thead>
                     <tbody class="divide-y divide-[var(--border)]">
                         <tr v-for="row in ineligible" :key="row.student_id">
-                            <td class="px-4 py-3">{{ row.name }}</td>
-                            <td class="px-4 py-3 text-[var(--muted)]">{{ row.nim }}</td>
+                            <td class="px-4 py-3 font-medium">{{ row.name }}</td>
+                            <td class="px-4 py-3 text-[var(--muted)] mono">{{ row.nim }}</td>
                             <td class="px-4 py-3 text-xs">
-                                <span v-for="reason in row.reasons" :key="reason" class="mr-1 rounded bg-[var(--primary-soft)] px-2 py-0.5">
+                                <span v-for="reason in row.reasons" :key="reason" class="tag tag-warning mr-1">
                                     {{ reason }}
                                 </span>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-            </Card>
-        </main>
-    </div>
+            </div>
+        </div>
+    </AdminLayout>
 </template>

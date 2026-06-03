@@ -1,11 +1,13 @@
 <script setup>
-import { Head, Link, useForm } from "@inertiajs/vue3";
+import { Head, useForm } from "@inertiajs/vue3";
 import { ref } from "vue";
+import MahasiswaLayout from "@/Layouts/MahasiswaLayout.vue";
 import Button from "@/components/ui/Button.vue";
 import Card from "@/components/ui/Card.vue";
 import Input from "@/components/ui/Input.vue";
 import Label from "@/components/ui/Label.vue";
 import Select from "@/components/ui/Select.vue";
+import { Trophy, CheckCircle2, Edit2, Trash2 } from "@lucide/vue";
 
 const props = defineProps({
     achievements: { type: Array, default: () => [] },
@@ -54,125 +56,154 @@ function destroy(a) {
     if (!confirm(`Hapus entri "${a.title}"?`)) return;
     useForm({}).delete(route("mahasiswa.achievements.destroy", a.id), { preserveScroll: true });
 }
-
-const logoutForm = useForm({});
-function logout() {
-    logoutForm.post(route("logout"));
-}
 </script>
 
 <template>
     <Head title="Prestasi Saya" />
 
-    <div class="min-h-screen bg-[var(--background)]">
-        <header class="border-b border-[var(--border)]">
-            <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-                <Link :href="route('mahasiswa.dashboard')" class="font-display text-lg font-semibold tracking-tight">
-                    Trimexas <span class="text-[var(--muted)] text-sm font-normal">/ Mahasiswa</span>
-                </Link>
-                <Button variant="ghost" size="sm" @click="logout">Logout</Button>
-            </div>
-        </header>
-
-        <main class="mx-auto max-w-4xl px-6 py-10 space-y-6">
-            <div>
-                <h1 class="font-display text-3xl font-semibold tracking-tight">Prestasi Saya</h1>
-                <p class="mt-2 text-sm text-[var(--muted)]">
+    <MahasiswaLayout active="achievements">
+        <div class="space-y-7">
+            <!-- Heading -->
+            <header class="reveal-stagger" style="--delay: 0ms">
+                <div class="flex items-center gap-3">
+                    <span class="bento-icon" style="background: var(--accent-2); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 30%, transparent)">
+                        <Trophy :size="20" />
+                    </span>
+                    <div>
+                        <span class="section-label">Capaian</span>
+                        <h1 class="display mt-1 text-[clamp(1.8rem,4vw,2.4rem)] text-[var(--ink)]">
+                            Prestasi Saya
+                        </h1>
+                    </div>
+                </div>
+                <p class="mt-3 text-[14.5px] text-[var(--muted)]">
                     Maks 5 entri (akademis + non-akademis). Skor agregat di-cap 50 per kategori.
                 </p>
-            </div>
+            </header>
 
-            <div class="grid grid-cols-2 gap-4">
-                <Card variant="elevated" class="p-5">
-                    <p class="text-xs text-[var(--muted)] uppercase tracking-wide">Akademis</p>
-                    <p class="mt-2 font-display text-3xl font-semibold">{{ aggregate.akademis }}</p>
+            <!-- Aggregate -->
+            <section class="reveal-stagger bento-grid" style="--delay: 80ms">
+                <article class="bento col-3">
+                    <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">Akademis</span>
+                    <p class="display mt-2 text-[2.2rem] leading-none text-[var(--ink)] tnum">{{ aggregate.akademis }}</p>
+                </article>
+                <article class="bento col-3">
+                    <span class="mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">Non-akademis</span>
+                    <p class="display mt-2 text-[2.2rem] leading-none text-[var(--ink)] tnum">{{ aggregate.non_akademis }}</p>
+                </article>
+            </section>
+
+            <!-- Form -->
+            <section class="reveal-stagger" style="--delay: 160ms">
+                <Card variant="elevated" class="p-6">
+                    <h2 class="display-md text-[1.1rem] text-[var(--ink)]">{{ editing ? "Ubah entri" : "Tambah entri baru" }}</h2>
+                    <form class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2" @submit.prevent="submit">
+                        <div class="space-y-2 sm:col-span-2">
+                            <Label for="title" required>Judul</Label>
+                            <Input id="title" v-model="form.title" :invalid="!!form.errors.title" placeholder="Contoh: Juara 1 Lomba Karya Ilmiah" />
+                            <p v-if="form.errors.title" class="text-[13px]" style="color: var(--danger)">{{ form.errors.title }}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="category" required>Kategori</Label>
+                            <Select id="category" v-model="form.category">
+                                <option value="akademis">Akademis</option>
+                                <option value="non_akademis">Non-akademis</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="year" required>Tahun</Label>
+                            <Input id="year" v-model.number="form.year" type="number" min="2000" max="2100" />
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="level" required>Level</Label>
+                            <Select id="level" v-model="form.level">
+                                <option v-for="l in levels" :key="l" :value="l">{{ l }}</option>
+                            </Select>
+                        </div>
+                        <div class="space-y-2">
+                            <Label for="rank" required>Peringkat</Label>
+                            <Select id="rank" v-model="form.rank">
+                                <option v-for="r in ranks" :key="r" :value="r">{{ r }}</option>
+                            </Select>
+                            <p v-if="form.errors.rank" class="text-[13px]" style="color: var(--danger)">{{ form.errors.rank }}</p>
+                        </div>
+                        <div class="sm:col-span-2 flex flex-wrap gap-2">
+                            <Button type="submit" :disabled="form.processing" variant="primary">
+                                {{ form.processing ? "Menyimpan…" : (editing ? "Simpan perubahan" : "Tambah entri") }}
+                            </Button>
+                            <Button v-if="editing" variant="ghost" type="button" @click="() => { editing = null; form.reset(); }">
+                                Batal
+                            </Button>
+                        </div>
+                    </form>
                 </Card>
-                <Card variant="elevated" class="p-5">
-                    <p class="text-xs text-[var(--muted)] uppercase tracking-wide">Non-akademis</p>
-                    <p class="mt-2 font-display text-3xl font-semibold">{{ aggregate.non_akademis }}</p>
-                </Card>
-            </div>
+            </section>
 
-            <Card variant="elevated" class="p-6">
-                <p class="font-medium">{{ editing ? "Ubah entri" : "Tambah entri baru" }}</p>
-                <form class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2" @submit.prevent="submit">
-                    <div class="sm:col-span-2 space-y-1.5">
-                        <Label for="title" required>Judul</Label>
-                        <Input id="title" v-model="form.title" :invalid="!!form.errors.title" />
-                        <p v-if="form.errors.title" class="text-xs text-red-600">{{ form.errors.title }}</p>
+            <!-- Table -->
+            <section class="reveal-stagger" style="--delay: 240ms">
+                <div class="window">
+                    <div class="window-bar">
+                        <span class="window-dot" style="background:#fb7185"></span>
+                        <span class="window-dot" style="background:#fbbf24"></span>
+                        <span class="window-dot" style="background:#34d399"></span>
+                        <span class="window-title">daftar-prestasi.json</span>
                     </div>
-                    <div class="space-y-1.5">
-                        <Label for="category" required>Kategori</Label>
-                        <select id="category" v-model="form.category" class="h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm">
-                            <option value="akademis">Akademis</option>
-                            <option value="non_akademis">Non-akademis</option>
-                        </select>
+                    <div class="window-body !p-0 overflow-x-auto">
+                        <table class="w-full text-[14px]">
+                            <thead class="border-b border-[var(--border)] bg-[var(--surface)]">
+                                <tr class="text-left">
+                                    <th class="px-4 py-3 mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Judul</th>
+                                    <th class="px-4 py-3 mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Kategori</th>
+                                    <th class="px-4 py-3 mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Level</th>
+                                    <th class="px-4 py-3 mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Peringkat</th>
+                                    <th class="px-4 py-3 mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] text-right">Skor</th>
+                                    <th class="px-4 py-3 mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] text-center">Verif</th>
+                                    <th class="px-4 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[var(--border)]">
+                                <tr v-for="a in achievements" :key="a.id" class="hover:bg-[var(--surface)] transition-colors">
+                                    <td class="px-4 py-3 text-[var(--foreground)]">{{ a.title }}</td>
+                                    <td class="px-4 py-3 text-[var(--muted)] capitalize">{{ a.category }}</td>
+                                    <td class="px-4 py-3 text-[var(--muted)] capitalize">{{ a.level }}</td>
+                                    <td class="px-4 py-3 text-[var(--muted)]">{{ a.rank }}</td>
+                                    <td class="px-4 py-3 text-right mono tnum text-[var(--ink)]">{{ a.score }}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <CheckCircle2 v-if="a.verified_by_admin" :size="16" style="color: var(--success); margin: 0 auto" />
+                                        <span v-else class="text-[var(--muted)]">—</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div v-if="!a.verified_by_admin" class="flex items-center justify-end gap-1">
+                                            <button
+                                                type="button"
+                                                @click="startEdit(a)"
+                                                class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] transition-colors"
+                                            >
+                                                <Edit2 :size="13" />
+                                                <span>Edit</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="destroy(a)"
+                                                class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] hover:bg-[var(--danger)] hover:text-white transition-colors"
+                                                style="color: var(--danger)"
+                                            >
+                                                <Trash2 :size="13" />
+                                                <span>Hapus</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="!achievements.length">
+                                    <td colspan="7" class="px-4 py-12 text-center text-[var(--muted)]">
+                                        Belum ada entri prestasi.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="space-y-1.5">
-                        <Label for="year" required>Tahun</Label>
-                        <Input id="year" v-model.number="form.year" type="number" min="2000" max="2100" />
-                    </div>
-                    <div class="space-y-1.5">
-                        <Label for="level" required>Level</Label>
-                        <select id="level" v-model="form.level" class="h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm">
-                            <option v-for="l in levels" :key="l" :value="l">{{ l }}</option>
-                        </select>
-                    </div>
-                    <div class="space-y-1.5">
-                        <Label for="rank" required>Peringkat</Label>
-                        <select id="rank" v-model="form.rank" class="h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm">
-                            <option v-for="r in ranks" :key="r" :value="r">{{ r }}</option>
-                        </select>
-                        <p v-if="form.errors.rank" class="text-xs text-red-600">{{ form.errors.rank }}</p>
-                    </div>
-                    <div class="sm:col-span-2 flex gap-2">
-                        <Button type="submit" :disabled="form.processing">
-                            {{ form.processing ? "Menyimpan…" : (editing ? "Simpan perubahan" : "Tambah entri") }}
-                        </Button>
-                        <Button v-if="editing" variant="ghost" type="button" @click="() => { editing = null; form.reset(); }">
-                            Batal
-                        </Button>
-                    </div>
-                </form>
-            </Card>
-
-            <Card variant="elevated" class="overflow-hidden">
-                <table class="w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
-                        <tr>
-                            <th class="px-4 py-3">Judul</th>
-                            <th class="px-4 py-3">Kategori</th>
-                            <th class="px-4 py-3">Level</th>
-                            <th class="px-4 py-3">Peringkat</th>
-                            <th class="px-4 py-3 text-right">Skor</th>
-                            <th class="px-4 py-3">Verified</th>
-                            <th class="px-4 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-[var(--border)]">
-                        <tr v-for="a in achievements" :key="a.id">
-                            <td class="px-4 py-3">{{ a.title }}</td>
-                            <td class="px-4 py-3">{{ a.category }}</td>
-                            <td class="px-4 py-3">{{ a.level }}</td>
-                            <td class="px-4 py-3">{{ a.rank }}</td>
-                            <td class="px-4 py-3 text-right font-mono">{{ a.score }}</td>
-                            <td class="px-4 py-3">
-                                <span v-if="a.verified_by_admin" class="text-emerald-600">✓</span>
-                                <span v-else class="text-[var(--muted)]">—</span>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <Button v-if="!a.verified_by_admin" size="sm" variant="ghost" @click="startEdit(a)">Edit</Button>
-                                <Button v-if="!a.verified_by_admin" size="sm" variant="danger" class="ml-1" @click="destroy(a)">Hapus</Button>
-                            </td>
-                        </tr>
-                        <tr v-if="!achievements.length">
-                            <td colspan="7" class="px-4 py-10 text-center text-[var(--muted)]">
-                                Belum ada entri prestasi.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </Card>
-        </main>
-    </div>
+                </div>
+            </section>
+        </div>
+    </MahasiswaLayout>
 </template>

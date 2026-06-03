@@ -18,6 +18,18 @@ it('logs in an admin and redirects to the admin dashboard', function () {
     expect(auth()->id())->toBe($admin->id);
 });
 
+it('logs in when the remember flag is present in the payload', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->post('/login', [
+        'email' => $admin->email,
+        'password' => 'password',
+        'remember' => true,
+    ])->assertRedirect(route('admin.dashboard'));
+
+    expect(auth()->id())->toBe($admin->id);
+});
+
 it('logs in an approved student and redirects to the mahasiswa dashboard', function () {
     $student = User::factory()->mahasiswa()->create();
 

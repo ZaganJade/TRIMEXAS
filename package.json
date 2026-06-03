@@ -12,9 +12,16 @@
         "prepare": "husky || true"
     },
     "lint-staged": {
-        "*.{js,vue}": ["eslint --fix", "prettier --write"],
-        "*.{css,json,md}": ["prettier --write"],
-        "*.php": ["vendor/bin/pint --quiet"]
+        "*.{js,vue}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{css,json,md}": [
+            "prettier --write"
+        ],
+        "*.php": [
+            "vendor/bin/pint --quiet"
+        ]
     },
     "devDependencies": {
         "@prettier/plugin-php": "^0.25.0",
@@ -41,6 +48,7 @@
         "@lucide/vue": "^1.16.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "motion-v": "^2.2.1",
         "radix-vue": "^1.9.17",
         "tailwind-merge": "^2.6.1",
         "vue": "^3.5.34",

@@ -1,5 +1,7 @@
 <script setup>
 import { Head, Link, useForm } from "@inertiajs/vue3";
+import { ArrowRight } from "@lucide/vue";
+import GuestLayout from "@/Layouts/GuestLayout.vue";
 import Button from "@/components/ui/Button.vue";
 import Card from "@/components/ui/Card.vue";
 import Input from "@/components/ui/Input.vue";
@@ -24,20 +26,18 @@ function submit() {
 <template>
     <Head title="Daftar" />
 
-    <div class="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-10">
-        <div class="w-full max-w-lg space-y-6">
-            <div class="text-center space-y-2">
-                <Link
-                    href="/"
-                    class="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
-                    ← Kembali ke beranda
-                </Link>
-                <h1 class="display-tight text-5xl tracking-tight text-[var(--ink)]">
-                    Daftar sebagai <span class="text-gradient-blue">Mahasiswa</span>
+    <GuestLayout maxWidth="max-w-lg">
+        <div class="reveal-stagger space-y-6" style="--delay: 60ms">
+            <div class="space-y-3 text-center">
+                <span class="eyebrow mx-auto" style="--delay: 0ms">
+                    <span class="dot"></span>
+                    <span class="mono uppercase tracking-[0.14em]">Pendaftaran Mahasiswa</span>
+                </span>
+                <h1 class="display-tight text-[clamp(2.4rem,7vw,3.25rem)] text-[var(--ink)]">
+                    Daftar sebagai <span class="text-gradient">Mahasiswa</span>
                 </h1>
-                <p class="mt-2 text-sm text-[var(--muted)]">
-                    Akun baru menunggu verifikasi admin sebelum dapat masuk.
+                <p class="text-sm leading-relaxed text-[var(--muted)]">
+                    Akun baru menunggu verifikasi admin sebelum dapat masuk
                 </p>
             </div>
 
@@ -49,10 +49,12 @@ function submit() {
                             <Input
                                 id="name"
                                 v-model="form.name"
+                                type="text"
                                 autocomplete="name"
+                                placeholder="Nama lengkap"
                                 :invalid="!!form.errors.name"
                             />
-                            <p v-if="form.errors.name" class="text-xs text-red-600">
+                            <p v-if="form.errors.name" class="text-xs text-[var(--danger)]">
                                 {{ form.errors.name }}
                             </p>
                         </div>
@@ -62,9 +64,11 @@ function submit() {
                             <Input
                                 id="nim"
                                 v-model="form.nim"
+                                type="text"
+                                placeholder="Nomor Induk Mahasiswa"
                                 :invalid="!!form.errors.nim"
                             />
-                            <p v-if="form.errors.nim" class="text-xs text-red-600">
+                            <p v-if="form.errors.nim" class="text-xs text-[var(--danger)]">
                                 {{ form.errors.nim }}
                             </p>
                         </div>
@@ -77,9 +81,10 @@ function submit() {
                             v-model="form.email"
                             type="email"
                             autocomplete="email"
+                            placeholder="email@kampus.ac.id"
                             :invalid="!!form.errors.email"
                         />
-                        <p v-if="form.errors.email" class="text-xs text-red-600">
+                        <p v-if="form.errors.email" class="text-xs text-[var(--danger)]">
                             {{ form.errors.email }}
                         </p>
                     </div>
@@ -92,9 +97,10 @@ function submit() {
                             type="number"
                             min="1"
                             max="14"
+                            placeholder="1-14"
                             :invalid="!!form.errors.semester"
                         />
-                        <p v-if="form.errors.semester" class="text-xs text-red-600">
+                        <p v-if="form.errors.semester" class="text-xs text-[var(--danger)]">
                             {{ form.errors.semester }}
                         </p>
                     </div>
@@ -109,7 +115,7 @@ function submit() {
                                 autocomplete="new-password"
                                 :invalid="!!form.errors.password"
                             />
-                            <p v-if="form.errors.password" class="text-xs text-red-600">
+                            <p v-if="form.errors.password" class="text-xs text-[var(--danger)]">
                                 {{ form.errors.password }}
                             </p>
                         </div>
@@ -125,18 +131,23 @@ function submit() {
                         </div>
                     </div>
 
-                    <Button type="submit" class="w-full" :disabled="form.processing">
+                    <Button type="submit" size="lg" class="group w-full" :disabled="form.processing">
                         {{ form.processing ? "Memproses..." : "Daftar" }}
+                        <ArrowRight
+                            v-if="!form.processing"
+                            :size="16"
+                            class="transition-transform group-hover:translate-x-0.5"
+                        />
                     </Button>
                 </form>
             </Card>
 
             <p class="text-center text-sm text-[var(--muted)]">
                 Sudah punya akun?
-                <Link :href="route('login')" class="text-[var(--primary)] hover:underline">
+                <Link :href="route('login')" class="font-medium text-[var(--primary)] hover:underline">
                     Masuk
                 </Link>
             </p>
         </div>
-    </div>
+    </GuestLayout>
 </template>

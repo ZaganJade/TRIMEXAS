@@ -26,7 +26,7 @@ class LoginController extends Controller
     {
         $request->ensureIsNotRateLimited();
 
-        $credentials = $request->validated();
+        $credentials = $request->only('email', 'password');
         /** @var User|null $user */
         $user = User::query()->where('email', $credentials['email'])->first();
 

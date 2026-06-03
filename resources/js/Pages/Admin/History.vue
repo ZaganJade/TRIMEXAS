@@ -1,8 +1,8 @@
 <script setup>
-import { Head, Link, useForm, router } from "@inertiajs/vue3";
+import { Head, Link, router } from "@inertiajs/vue3";
 import { ref } from "vue";
+import AdminLayout from "@/Layouts/AdminLayout.vue";
 import Button from "@/components/ui/Button.vue";
-import Card from "@/components/ui/Card.vue";
 
 const props = defineProps({
     batches: { type: Object, required: true },
@@ -16,46 +16,37 @@ function applyFilter() {
         preserveState: true,
     });
 }
-
-const logoutForm = useForm({});
-function logout() {
-    logoutForm.post(route("logout"));
-}
 </script>
 
 <template>
     <Head title="Riwayat Batch" />
-
-    <div class="min-h-screen bg-[var(--background)]">
-        <header class="border-b border-[var(--border)]">
-            <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-                <Link :href="route('admin.dashboard')" class="font-display text-lg font-semibold tracking-tight">
-                    Trimexas <span class="text-[var(--muted)] text-sm font-normal">/ Admin</span>
-                </Link>
-                <Button variant="ghost" size="sm" @click="logout">Logout</Button>
+    <AdminLayout active="history">
+        <div class="window">
+            <div class="window-bar">
+                <span class="window-dot" />
+                <span class="window-dot" />
+                <span class="window-dot" />
+                <span class="window-title">Riwayat Batch Seleksi</span>
             </div>
-        </header>
-
-        <main class="mx-auto max-w-6xl px-6 py-10 space-y-4">
-            <div class="flex items-baseline justify-between">
-                <h1 class="font-display text-3xl font-semibold tracking-tight">Riwayat Batch Seleksi</h1>
-                <Link :href="route('admin.selection.run')" class="text-sm text-[var(--primary)] hover:underline">+ Batch baru</Link>
+            <div class="window-body flex items-center justify-between">
+                <div class="flex gap-2">
+                    <select v-model="filter" class="h-9 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm mono">
+                        <option value="">Semua status</option>
+                        <option value="queued">Queued</option>
+                        <option value="running">Running</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                    <Button variant="secondary" size="sm" @click="applyFilter">Filter</Button>
+                </div>
+                <Link :href="route('admin.selection.run')" class="btn-primary text-sm">+ Batch baru</Link>
             </div>
+        </div>
 
-            <div class="flex gap-2">
-                <select v-model="filter" class="h-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm">
-                    <option value="">Semua status</option>
-                    <option value="queued">Queued</option>
-                    <option value="running">Running</option>
-                    <option value="completed">Completed</option>
-                    <option value="failed">Failed</option>
-                </select>
-                <Button variant="secondary" size="sm" @click="applyFilter">Filter</Button>
-            </div>
-
-            <Card variant="elevated" class="overflow-hidden">
+        <div class="window mt-6">
+            <div class="window-body p-0 overflow-auto">
                 <table class="w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)]">
                         <tr>
                             <th class="px-4 py-3">Label</th>
                             <th class="px-4 py-3">Dijalankan</th>
@@ -70,10 +61,12 @@ function logout() {
                         <tr v-for="b in batches.data" :key="b.id">
                             <td class="px-4 py-3 font-medium">{{ b.label }}</td>
                             <td class="px-4 py-3 text-[var(--muted)]">{{ b.triggered_by ?? '—' }}</td>
-                            <td class="px-4 py-3 uppercase text-xs">{{ b.status }}</td>
-                            <td class="px-4 py-3">{{ b.total_candidates }}</td>
-                            <td class="px-4 py-3">{{ b.total_eligible }}</td>
-                            <td class="px-4 py-3 text-[var(--muted)]">
+                            <td class="px-4 py-3">
+                                <span class="tag tag-primary mono uppercase text-xs">{{ b.status }}</span>
+                            </td>
+                            <td class="px-4 py-3 mono tnum">{{ b.total_candidates }}</td>
+                            <td class="px-4 py-3 mono tnum">{{ b.total_eligible }}</td>
+                            <td class="px-4 py-3 text-[var(--muted)] text-xs">
                                 {{ new Date(b.created_at).toLocaleString("id-ID") }}
                             </td>
                             <td class="px-4 py-3">
@@ -85,7 +78,7 @@ function logout() {
                         </tr>
                     </tbody>
                 </table>
-            </Card>
-        </main>
-    </div>
+            </div>
+        </div>
+    </AdminLayout>
 </template>

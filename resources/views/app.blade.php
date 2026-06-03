@@ -18,22 +18,24 @@
 
         @routes
 
-        {{-- Inline theme bootstrap to avoid flash-of-wrong-theme --}}
+        {{-- Inline theme bootstrap to avoid flash-of-wrong-theme. Light is the default (warm academic). --}}
         <script>
             (function () {
                 try {
                     var stored = localStorage.getItem('trimexas-theme');
-                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    var initial = stored || (prefersDark ? 'dark' : 'light');
+                    var initial = stored !== null ? stored : 'light';
                     document.documentElement.classList.toggle('dark', initial === 'dark');
-                } catch (e) {}
+                } catch (e) {
+                    // Default to light theme
+                    document.documentElement.classList.remove('dark');
+                }
             })();
         </script>
 
-        {{-- PRD §11.3: Space Grotesk (heading) + Inter (body) + JetBrains Mono (numerics/ticker) --}}
+        {{-- Typography: Fraunces (display) + Bricolage Grotesque (body) + JetBrains Mono (numerics/labels) --}}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500;600;700&family=Bricolage+Grotesque:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @inertiaHead
