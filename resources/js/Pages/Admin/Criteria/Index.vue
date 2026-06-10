@@ -81,11 +81,11 @@ function save(_criterion, set) {
                     </h2>
                 </div>
 
-                <div class="mt-6 bento-grid col-3">
+                <div class="mt-6 bento-grid">
                     <div
                         v-for="s in c.sets"
                         :key="s.id"
-                        class="bento"
+                        class="bento col-3"
                     >
                         <div class="flex items-center justify-between mb-3">
                             <h3 class="font-medium capitalize">{{ s.name }}</h3>

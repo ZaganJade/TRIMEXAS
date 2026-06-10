@@ -10,9 +10,13 @@ use Illuminate\Database\Seeder;
  * Seeder kriteria + himpunan fuzzy default sesuai PRD §8.4.
  *
  * IPK (3,00 - 4,00):
- *   rendah  : linear_turun a=3.25 b=3.6
- *   sedang  : segitiga    a=3.25 b=3.5  c=3.75
- *   tinggi  : linear_naik a=3.6  b=3.75
+ *   rendah  : linear_turun a=3.00 b=3.25
+ *   sedang  : segitiga    a=3.00 b=3.50 c=3.75
+ *   tinggi  : linear_naik a=3.50 b=3.75
+ *
+ *   Referensi: Gloria & Sediyono (2022), Muhtadi et al. (2025)
+ *   Perubahan: rendah dipersempit ke 3.0-3.25 (borderline saja),
+ *   sedang diperluas ke 3.0-3.75, tinggi dimulai dari 3.5.
  *
  * Penghasilan Ortu (0 - 15.000.000 rupiah):
  *   rendah  : linear_turun a=3_000_000 b=7_000_000
@@ -43,9 +47,9 @@ class CriteriaSeeder extends Seeder
                 'unit' => 'skala 4',
                 'display_order' => 1,
                 'sets' => [
-                    ['name' => 'rendah', 'shape' => FuzzySet::SHAPE_LINEAR_TURUN, 'a' => 3.25, 'b' => 3.6, 'c' => null],
-                    ['name' => 'sedang', 'shape' => FuzzySet::SHAPE_SEGITIGA, 'a' => 3.25, 'b' => 3.5, 'c' => 3.75],
-                    ['name' => 'tinggi', 'shape' => FuzzySet::SHAPE_LINEAR_NAIK, 'a' => 3.6, 'b' => 3.75, 'c' => null],
+                    ['name' => 'rendah', 'shape' => FuzzySet::SHAPE_LINEAR_TURUN, 'a' => 3.00, 'b' => 3.25, 'c' => null],
+                    ['name' => 'sedang', 'shape' => FuzzySet::SHAPE_SEGITIGA, 'a' => 3.00, 'b' => 3.50, 'c' => 3.75],
+                    ['name' => 'tinggi', 'shape' => FuzzySet::SHAPE_LINEAR_NAIK, 'a' => 3.50, 'b' => 3.75, 'c' => null],
                 ],
             ],
             [

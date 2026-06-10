@@ -51,7 +51,7 @@ class ProcessSelectionBatchJob implements ShouldQueue
             'started_at' => now(),
         ])->save();
 
-        // Approved students saja.
+        // Approved students saja — semua mahasiswa approved diproses (gate 4 rule menyaring di dalam engine).
         $studentIds = Student::query()
             ->whereHas('user', fn ($q) => $q->where('approval_status', User::STATUS_APPROVED))
             ->pluck('id')
@@ -69,7 +69,15 @@ class ProcessSelectionBatchJob implements ShouldQueue
         }
 
         foreach (array_chunk($studentIds, 50) as $chunk) {
-            ProcessCandidateChunkJob::dispatch($batch->id, $chunk)->onQueue('seleksi');
+            // Local/dev: jalankan chunk secara sinkron agar tidak bergantung pada
+            // queue worker yang sulit di-spawn dari HTTP request (khususnya di Windows/Laragon).
+            // Production: tetap dispatch ke queue 'seleksi' untuk eksekusi terdistribusi.
+            if (app()->environment('local') && config('queue.default') === 'database') {
+                app(\App\Jobs\ProcessCandidateChunkJob::class, ['batchId' => $batch->id, 'studentIds' => $chunk])
+                    ->handle(app(\App\Domain\Fuzzy\FuzzyEngine::class));
+            } else {
+                ProcessCandidateChunkJob::dispatch($batch->id, $chunk)->onQueue('seleksi');
+            }
         }
     }
 }

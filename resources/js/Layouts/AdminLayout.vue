@@ -31,8 +31,8 @@ const { isDark, toggleTheme } = useTheme();
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
 
-// Sidebar state - now hover-based, starts collapsed on desktop
-const isSidebarOpen = ref(false);
+// Sidebar state - hover-based; default open on desktop agar konten utama tidak overflow.
+const isSidebarOpen = ref(true);
 const isMobileMenuOpen = ref(false);
 const hoverZone = ref(false);
 const sidebarTimer = ref(null);
@@ -342,7 +342,7 @@ onBeforeUnmount(() => {
         </aside>
 
         <!-- Main Content -->
-        <main class="admin-main">
+        <main class="admin-main" :class="{ 'main-sidebar-collapsed': !isSidebarOpen && !isMobileMenuOpen }">
             <!-- Top Header -->
             <header class="admin-header">
                 <div class="flex items-center gap-4">
@@ -796,6 +796,11 @@ onBeforeUnmount(() => {
     flex-direction: column;
     margin-left: 260px;
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 0; /* prevent overflow from fixed-width sidebar flex issue */
+}
+
+.admin-main.main-sidebar-collapsed {
+    margin-left: 72px;
 }
 
 .sidebar-collapsed ~ .admin-main {
@@ -803,7 +808,8 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 1024px) {
-    .admin-main {
+    .admin-main,
+    .admin-main.main-sidebar-collapsed {
         margin-left: 0;
     }
 }
@@ -906,6 +912,9 @@ onBeforeUnmount(() => {
     flex: 1;
     padding: 2rem;
     overflow: auto;
+    width: 100%;
+    max-width: 1640px; /* 1480 konten + 260 sidebar - sisakan margin */
+    margin: 0 auto;
 }
 
 @media (max-width: 768px) {

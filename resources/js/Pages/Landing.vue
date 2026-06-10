@@ -198,7 +198,7 @@ function setupReveal() {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add("is-visible");
-                    entry.target.setAttribute("data-visible", "true");
+                    entry.target.setAttribute("data-revealed", "");
                     io.unobserve(entry.target);
                 }
             });
@@ -462,7 +462,7 @@ const methodSteps = [
     {
         n: "01",
         title: "Fuzzifikasi",
-        body: "Setiap nilai mentah IPK, penghasilan, prestasi diterjemahkan jadi derajat keanggotaan antara 0 dan 1.",
+        body: "Setiap nilai mentah — IPK, penghasilan, prestasi — diterjemahkan jadi derajat keanggotaan antara 0 dan 1.",
     },
     {
         n: "02",
@@ -490,7 +490,7 @@ const journey = [
     {
         n: "03",
         title: "Sistem menilai",
-        body: "Lima kriteria - akademik, prestasi, kondisi keluarga dirangkum jadi satu skor.",
+        body: "Lima kriteria — akademik, prestasi, kondisi keluarga — dirangkum jadi satu skor.",
     },
     {
         n: "04",
@@ -562,7 +562,7 @@ const faqs = [
     },
     {
         q: "Apakah hasilnya bisa saya lihat?",
-        a: "Bisa. Setiap mahasiswa punya halaman ranking publik berisi nama, skor, dan status tanpa membocorkan data sensitif lainnya.",
+        a: "Bisa. Setiap mahasiswa punya halaman ranking publik berisi nama, skor, dan status — tanpa membocorkan data sensitif lainnya.",
     },
     {
         q: "Siapa yang membuat sistem ini?",
@@ -686,7 +686,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head title="Trimexas - SPK Beasiswa Fuzzy Tsukamoto" />
+    <Head title="Trimexas — SPK Beasiswa Fuzzy Tsukamoto" />
 
     <!-- Intro preloader -->
     <div v-if="showIntro" class="preloader" :class="{ 'is-leaving': introLeaving }">
@@ -803,7 +803,7 @@ onBeforeUnmount(() => {
                 <div class="mt-9 grid gap-10 lg:grid-cols-[1.1fr_auto] lg:items-end">
                     <p class="fade-load max-w-2xl text-[17px] leading-[1.75] text-[var(--muted)]" style="--i: 5">
                         Trimexas adalah Sistem Pendukung Keputusan berbasis
-                        <span class="font-medium text-[var(--ink)]">Logika Fuzzy Tsukamoto</span> 
+                        <span class="font-medium text-[var(--ink)]">Logika Fuzzy Tsukamoto</span> —
                         mengubah lima kriteria menjadi satu skor kelayakan yang konsisten,
                         objektif, dan bisa dipertanggungjawabkan.
                     </p>
@@ -887,27 +887,27 @@ onBeforeUnmount(() => {
         <section id="produk" class="relative z-10 mx-auto max-w-[1240px] px-5 py-28 lg:px-8">
             <div class="reveal-on-scroll flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <div class="max-w-2xl">
-                    <span class="sec-index">(01) - Produk</span>
+                    <span class="sec-index">(01) — Produk</span>
                     <h2 class="display mt-4 text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.05] text-[var(--ink)]">
                         Satu ruang kerja untuk
                         <span class="text-gradient">seluruh proses seleksi.</span>
                     </h2>
                 </div>
                 <p class="max-w-sm text-[15px] leading-[1.7] text-[var(--muted)]">
-                    Dari pendaftaran sampai pengumuman verifikasi, penilaian fuzzy, ranking,
+                    Dari pendaftaran sampai pengumuman — verifikasi, penilaian fuzzy, ranking,
                     dan laporan, semuanya rapi dalam satu sistem.
                 </p>
             </div>
 
             <div class="bento-grid mt-14">
                 <!-- Big card: live ranking surface -->
-                <article class="bento b-4 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
+                <article class="bento b-5 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
                     <div class="flex items-center justify-between">
                         <div>
                             <span class="bento-icon mb-3"><ListChecks :size="20" /></span>
                             <h3 class="display-md text-[1.3rem] text-[var(--ink)]">Ranking otomatis</h3>
                             <p class="mt-1.5 max-w-md text-[14.5px] leading-relaxed text-[var(--muted)]">
-                                Setiap kandidat diberi skor dan peringkat secara langsung siap dibawa ke rapat.
+                                Setiap kandidat diberi skor dan peringkat secara langsung — siap dibawa ke rapat.
                             </p>
                         </div>
                         <span class="tag tag-primary hidden sm:inline-flex">Batch #07</span>
@@ -918,7 +918,7 @@ onBeforeUnmount(() => {
                             <span class="window-dot" style="background:#ef4444"></span>
                             <span class="window-dot" style="background:#f59e0b"></span>
                             <span class="window-dot" style="background:#22c55e"></span>
-                            <span class="window-title">trimexas - hasil seleksi</span>
+                            <span class="window-title">trimexas — hasil seleksi</span>
                         </div>
                         <div class="window-body">
                             <div v-for="r in ranking" :key="r.pos" class="rank-row">
@@ -936,7 +936,7 @@ onBeforeUnmount(() => {
                 </article>
 
                 <!-- Side stack -->
-                <div class="b-2 flex flex-col gap-[1.1rem]">
+                <div class="b-3 flex flex-col gap-[1.1rem]">
                     <article
                         v-for="(f, fi) in features"
                         :key="f.title"
@@ -952,11 +952,11 @@ onBeforeUnmount(() => {
                 </div>
 
                 <!-- Wide: report export -->
-                <article class="bento b-3 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
+                <article class="bento b-4 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
                     <span class="bento-icon mb-3"><FileSpreadsheet :size="20" /></span>
                     <h3 class="display-md text-[1.15rem] text-[var(--ink)]">Laporan siap kirim</h3>
                     <p class="mt-1.5 text-[14px] leading-relaxed text-[var(--muted)]">
-                        Ekspor hasil ke PDF &amp; Excel dengan rincian skor tiap kriteria akuntabel untuk yayasan.
+                        Ekspor hasil ke PDF &amp; Excel dengan rincian skor tiap kriteria — akuntabel untuk yayasan.
                     </p>
                     <div class="mt-5 flex flex-wrap gap-2">
                         <span class="tag">.pdf</span>
@@ -966,7 +966,7 @@ onBeforeUnmount(() => {
                 </article>
 
                 <!-- Wide: workflow -->
-                <article class="bento b-3 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
+                <article class="bento b-4 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
                     <span class="bento-icon mb-3"><Workflow :size="20" /></span>
                     <h3 class="display-md text-[1.15rem] text-[var(--ink)]">Alur kerja terpandu</h3>
                     <p class="mt-1.5 text-[14px] leading-relaxed text-[var(--muted)]">
@@ -987,7 +987,7 @@ onBeforeUnmount(() => {
              ========================================================= -->
         <section id="metode" class="relative z-10 mx-auto max-w-[1240px] px-5 py-28 lg:px-8">
             <div class="reveal-on-scroll max-w-2xl">
-                <span class="sec-index">(02) - Kalkulator</span>
+                <span class="sec-index">(02) — Kalkulator</span>
                 <h2 class="display mt-4 text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.05] text-[var(--ink)]">
                     Geser parameternya,
                     <span class="text-gradient">lihat skornya hidup.</span>
@@ -1081,7 +1081,7 @@ onBeforeUnmount(() => {
              ========================================================= -->
         <section id="alur" class="relative z-10 mx-auto max-w-[1000px] px-5 py-28 lg:px-8">
             <div class="reveal-on-scroll max-w-2xl">
-                <span class="sec-index">(03) - Alur</span>
+                <span class="sec-index">(03) — Alur</span>
                 <h2 class="display mt-4 text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05] text-[var(--ink)]">
                     Empat langkah, dari daftar
                     <span class="text-gradient">sampai pengumuman.</span>
@@ -1109,7 +1109,7 @@ onBeforeUnmount(() => {
              ========================================================= -->
         <section id="audience" class="relative z-10 mx-auto max-w-[1240px] px-5 py-28 lg:px-8">
             <div class="reveal-on-scroll max-w-2xl">
-                <span class="sec-index">(04) - Untuk siapa</span>
+                <span class="sec-index">(04) — Untuk siapa</span>
                 <h2 class="display mt-4 text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05] text-[var(--ink)]">
                     Dua peran, satu ruang yang
                     <span class="text-gradient">saling memahami.</span>
@@ -1151,9 +1151,9 @@ onBeforeUnmount(() => {
              ========================================================= -->
         <section class="relative z-10 mx-auto max-w-[1240px] px-5 py-20 lg:px-8">
             <div class="reveal-on-scroll mx-auto max-w-4xl text-center">
-                <span class="sec-index">(05) - Prinsip</span>
+                <span class="sec-index">(05) — Prinsip</span>
                 <blockquote class="display mx-auto mt-6 max-w-4xl text-[clamp(1.7rem,4vw,3rem)] leading-[1.2] text-[var(--ink)]">
-                    Keputusan yang baik bukan yang paling cepat melainkan yang
+                    Keputusan yang baik bukan yang paling cepat — melainkan yang
                     <span class="text-gradient">bisa diceritakan kembali.</span>
                 </blockquote>
                 <footer class="mt-8 flex items-center justify-center gap-3">
@@ -1168,7 +1168,7 @@ onBeforeUnmount(() => {
              ========================================================= -->
         <section id="faq" class="relative z-10 mx-auto max-w-[920px] px-5 py-20 lg:px-8">
             <div class="reveal-on-scroll max-w-2xl">
-                <span class="sec-index">(06) - Pertanyaan</span>
+                <span class="sec-index">(06) — Pertanyaan</span>
                 <h2 class="display mt-4 text-[clamp(2rem,4.4vw,3rem)] leading-[1.05] text-[var(--ink)]">
                     Hal yang <span class="text-gradient">sering ditanyakan.</span>
                 </h2>
@@ -1192,12 +1192,12 @@ onBeforeUnmount(() => {
              ========================================================= -->
         <section id="team" class="relative z-10 mx-auto max-w-[1240px] px-5 py-20 lg:px-8">
             <div class="reveal-on-scroll max-w-2xl">
-                <span class="sec-index">(07) - Tim</span>
+                <span class="sec-index">(07) — Tim</span>
                 <h2 class="display mt-4 text-[clamp(2rem,4.4vw,3rem)] leading-[1.05] text-[var(--ink)]">
                     Empat mahasiswa, <span class="text-gradient">satu kelas.</span>
                 </h2>
                 <p class="mt-5 text-[16px] leading-[1.7] text-[var(--muted)]">
-                    Praktikum Artificial Intelligence - Semester 4, Kelompok 4.
+                    Praktikum Artificial Intelligence — Semester 4, Kelompok 4.
                 </p>
             </div>
 

@@ -16,7 +16,7 @@ const props = defineProps({
     nav: { type: Array, default: () => [] },
     brandSuffix: { type: String, default: "" },
     homeHref: { type: String, default: "/" },
-    maxWidth: { type: String, default: "max-w-6xl" },
+    maxWidth: { type: String, default: "max-w-[1480px]" },
 });
 
 const { isDark, toggleTheme } = useTheme();

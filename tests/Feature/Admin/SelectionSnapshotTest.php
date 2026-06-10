@@ -25,7 +25,7 @@ it('snapshots fuzzy sets, rules, and thresholds at the time take() is called', f
     $batch->refresh();
 
     expect($batch->snapshot_fuzzy_sets)->toBeArray()->toHaveCount(15); // 5 kriteria × 3 himpunan
-    expect($batch->snapshot_rules)->toBeArray()->toHaveCount(75);
+    expect($batch->snapshot_rules)->toBeArray()->toHaveCount(111); // 75 original + 24 rendah + 6 edge-case + 6 sedikit-tng coverage
     expect($batch->snapshot_thresholds)->toBeArray()
         ->toHaveKey('threshold_1')
         ->toHaveKey('threshold_2');

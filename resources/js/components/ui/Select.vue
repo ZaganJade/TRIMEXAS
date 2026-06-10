@@ -14,7 +14,7 @@ import {
 import { ChevronDown, Check } from "@lucide/vue";
 import { cn } from "@/lib/utils";
 
-defineProps({
+const props = defineProps({
     modelValue: { type: [String, Number, null], default: null },
     placeholder: { type: String, default: "Pilih..." },
     options: {
@@ -23,6 +23,14 @@ defineProps({
     },
 });
 defineEmits(["update:modelValue"]);
+
+function normalizeOptions(opts) {
+    return (opts || []).map((o) =>
+        typeof o === "object" && o !== null
+            ? { value: o.value, label: o.label ?? String(o.value) }
+            : { value: o, label: String(o) }
+    );
+}
 </script>
 
 <template>
@@ -53,9 +61,9 @@ defineEmits(["update:modelValue"]);
             >
                 <SelectViewport class="p-1">
                     <SelectItem
-                        v-for="opt in options"
+                        v-for="opt in normalizeOptions(options)"
                         :key="opt.value"
-                        :value="opt.value.toString()"
+                        :value="String(opt.value)"
                         class="relative flex h-9 cursor-default select-none items-center rounded-md px-7 text-sm outline-none data-[highlighted]:bg-[var(--primary-soft)] data-[highlighted]:text-[var(--primary)]"
                     >
                         <SelectItemIndicator class="absolute left-2 inline-flex items-center">

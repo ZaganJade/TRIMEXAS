@@ -6,7 +6,7 @@ use App\Models\Rule;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeder rule base — 75 rule sesuai docs/KnowledgeBase_RuleSpec.md §3.
+ * Seeder rule base — 111 rule sesuai docs/KnowledgeBase_RuleSpec.md §3.
  *
  * Format antecedents: [
  *   'ipk' => 'rendah'|'sedang'|'tinggi',
@@ -133,6 +133,61 @@ class RuleSeeder extends Seeder
             ['code' => 'R073', 'antecedents' => $a('tinggi', 'tinggi', 'sedang', 'banyak', 'sedikit'),   'consequent' => $T, 'description' => 'Ekonomi tinggi sulit dikompensasi prestasi non-dominan'],
             ['code' => 'R074', 'antecedents' => $a('tinggi', 'tinggi', 'banyak', 'sedikit', 'sedikit'),  'consequent' => $T, 'description' => 'Ekonomi tinggi + tanggungan sedikit, akademis dominan tapi tidak butuh'],
             ['code' => 'R075', 'antecedents' => $a('sedang', 'tinggi', 'banyak', 'banyak', 'sedikit'),   'consequent' => $T, 'description' => 'Ekonomi mampu + prestasi tinggi tapi tanpa kebutuhan'],
+
+            // 3.4 IPK RENDAH — Rules untuk kandidat IPK borderline (3.0–3.5) (R076 - R099)
+            // Referensi: Gloria & Sediyono (2022), Muhtadi et al. (2025)
+            // Prinsip: IPK rendah → starting position lemah, perlu kompensasi kuat dari kriteria lain
+
+            // 3.4.1 IPK RENDAH + DIPERTIMBANGKAN (R076 - R084)
+            // Syarat: minimal 2 indikator kuat (prestasi ganda, atau prestasi + ekonomi sulit)
+            ['code' => 'R076', 'antecedents' => $a('rendah', 'rendah', 'banyak', 'banyak', 'banyak'),  'consequent' => $D, 'description' => 'IPK borderline + prestasi ganda sangat kuat + ekonomi sulit + tanggungan banyak'],
+            ['code' => 'R077', 'antecedents' => $a('rendah', 'rendah', 'banyak', 'banyak', 'sedang'),  'consequent' => $D, 'description' => 'IPK borderline + prestasi ganda tinggi + ekonomi rendah'],
+            ['code' => 'R078', 'antecedents' => $a('rendah', 'rendah', 'banyak', 'sedang', 'banyak'),  'consequent' => $D, 'description' => 'IPK borderline + akademis kuat + ekonomi sulit + tanggungan banyak'],
+            ['code' => 'R079', 'antecedents' => $a('rendah', 'rendah', 'sedang', 'banyak', 'banyak'),  'consequent' => $D, 'description' => 'IPK borderline + non-akademis kuat + ekonomi sulit + tanggungan banyak'],
+            ['code' => 'R080', 'antecedents' => $a('rendah', 'rendah', 'sedang', 'sedang', 'banyak'),  'consequent' => $D, 'description' => 'IPK borderline + profil moderat + ekonomi sulit + tanggungan banyak'],
+            ['code' => 'R081', 'antecedents' => $a('rendah', 'rendah', 'sedikit', 'banyak', 'banyak'),  'consequent' => $D, 'description' => 'IPK borderline + non-akademis tinggi + ekonomi sulit, akademis kurang'],
+            ['code' => 'R082', 'antecedents' => $a('rendah', 'sedang', 'banyak', 'banyak', 'banyak'),   'consequent' => $D, 'description' => 'IPK borderline + prestasi sangat tinggi + tanggungan banyak'],
+            ['code' => 'R083', 'antecedents' => $a('rendah', 'sedang', 'banyak', 'banyak', 'sedang'),   'consequent' => $D, 'description' => 'IPK borderline + prestasi ganda mengkompensasi sebagian'],
+            ['code' => 'R084', 'antecedents' => $a('rendah', 'sedang', 'banyak', 'sedang', 'banyak'),   'consequent' => $D, 'description' => 'IPK borderline + akademis kuat + tanggungan banyak'],
+
+            // 3.4.2 IPK RENDAH + TIDAK LAYAK (R085 - R099)
+            // Prinsip: IPK rendah + tidak ada kompensasi memadai → tidak layak
+            ['code' => 'R085', 'antecedents' => $a('rendah', 'rendah', 'banyak', 'sedikit', 'banyak'),  'consequent' => $T, 'description' => 'IPK rendah + akademis saja + ekonomi rendah tidak cukup'],
+            ['code' => 'R086', 'antecedents' => $a('rendah', 'rendah', 'sedang', 'sedikit', 'sedang'),  'consequent' => $T, 'description' => 'IPK rendah + profil tipis + ekonomi rendah'],
+            ['code' => 'R087', 'antecedents' => $a('rendah', 'sedang', 'sedang', 'sedang', 'sedang'),   'consequent' => $T, 'description' => 'IPK rendah + sepenuhnya medioker'],
+            ['code' => 'R088', 'antecedents' => $a('rendah', 'sedang', 'sedikit', 'sedikit', 'sedikit'), 'consequent' => $T, 'description' => 'IPK rendah + tidak ada sinyal positif'],
+            ['code' => 'R089', 'antecedents' => $a('rendah', 'sedang', 'sedikit', 'sedikit', 'sedang'),  'consequent' => $T, 'description' => 'IPK rendah + profil sangat lemah'],
+            ['code' => 'R090', 'antecedents' => $a('rendah', 'sedang', 'sedikit', 'sedang', 'sedikit'),  'consequent' => $T, 'description' => 'IPK rendah + lemah di semua dimensi'],
+            ['code' => 'R091', 'antecedents' => $a('rendah', 'tinggi', 'banyak', 'banyak', 'banyak'),   'consequent' => $D, 'description' => 'IPK rendah + prestasi exceptional + ekonomi tinggi masih dilirik'],
+            ['code' => 'R092', 'antecedents' => $a('rendah', 'tinggi', 'banyak', 'sedang', 'sedang'),   'consequent' => $T, 'description' => 'IPK rendah + ekonomi tinggi, akademis tidak cukup kompensasi'],
+            ['code' => 'R093', 'antecedents' => $a('rendah', 'rendah', 'sedikit', 'sedikit', 'sedikit'), 'consequent' => $T, 'description' => 'IPK rendah + prestasi nol meski ekonomi rendah'],
+            ['code' => 'R094', 'antecedents' => $a('rendah', 'rendah', 'sedikit', 'sedikit', 'sedang'),  'consequent' => $T, 'description' => 'IPK rendah + ekonomi rendah saja tidak cukup'],
+            ['code' => 'R095', 'antecedents' => $a('rendah', 'rendah', 'sedikit', 'sedang', 'sedikit'),  'consequent' => $T, 'description' => 'IPK rendah + profil hampir kosong'],
+            ['code' => 'R096', 'antecedents' => $a('rendah', 'sedang', 'sedang', 'sedikit', 'sedikit'),  'consequent' => $T, 'description' => 'IPK rendah + akademis pas-pasan + tidak ada penguat'],
+            ['code' => 'R097', 'antecedents' => $a('rendah', 'sedang', 'sedikit', 'banyak', 'sedikit'),  'consequent' => $T, 'description' => 'IPK rendah + non-akademis saja tanpa penguat lain'],
+            ['code' => 'R098', 'antecedents' => $a('rendah', 'tinggi', 'sedikit', 'sedikit', 'sedikit'), 'consequent' => $T, 'description' => 'IPK rendah + ekonomi mampu + tidak ada prestasi'],
+            ['code' => 'R099', 'antecedents' => $a('rendah', 'tinggi', 'sedang', 'sedang', 'sedikit'),   'consequent' => $T, 'description' => 'IPK rendah + ekonomi mampu + profil moderat'],
+
+            // 3.5 Edge-case coverage — kombinasi tinggi/sedang yang masih miss (R100 - R105)
+            // Menutupi gap: prestasi tinggi + penghasilan tinggi + tanggungan sedikit,
+            // dan prestasi akademis saja tanpa penguat lain
+
+            ['code' => 'R100', 'antecedents' => $a('tinggi', 'tinggi', 'banyak', 'banyak', 'sedikit'),  'consequent' => $D, 'description' => 'Prestasi sangat tinggi tapi ekonomi tinggi + tanggungan sedikit → masih dipertimbangkan'],
+            ['code' => 'R101', 'antecedents' => $a('sedang', 'sedang', 'banyak', 'sedikit', 'sedikit'),  'consequent' => $T, 'description' => 'Akademis tinggi saja tanpa penguat lain → tidak cukup'],
+            ['code' => 'R102', 'antecedents' => $a('tinggi', 'sedang', 'banyak', 'sedikit', 'sedikit'),  'consequent' => $T, 'description' => 'IPK tinggi + akademis saja tanpa penguat → tidak cukup'],
+            ['code' => 'R103', 'antecedents' => $a('tinggi', 'tinggi', 'banyak', 'sedang', 'sedikit'),   'consequent' => $D, 'description' => 'Ekonomi tinggi tapi akademis kuat → masih dilirik parsial'],
+            ['code' => 'R104', 'antecedents' => $a('sedang', 'sedang', 'banyak', 'sedikit', 'sedang'),   'consequent' => $T, 'description' => 'Akademis tinggi tapi tanpa non-akademis + ekonomi menengah'],
+            ['code' => 'R105', 'antecedents' => $a('sedang', 'tinggi', 'banyak', 'sedikit', 'sedang'),   'consequent' => $T, 'description' => 'Akademis kuat tapi ekonomi mampu + non-akademis rendah'],
+
+            // 3.6 Tanggungan sedikit coverage — menutupi kombinasi tng=sedikit (R106 - R111)
+            // Kandidat dengan tanggungan sedikit (0-2 orang) tetap perlu evaluasi
+
+            ['code' => 'R106', 'antecedents' => $a('tinggi', 'rendah', 'banyak', 'sedang', 'sedikit'),  'consequent' => $D, 'description' => 'IPK tinggi + akademis kuat + ekonomi rendah, tanggungan sedikit → masih dipertimbangkan'],
+            ['code' => 'R107', 'antecedents' => $a('tinggi', 'sedang', 'sedang', 'sedang', 'sedikit'),  'consequent' => $D, 'description' => 'Profil moderat tanpa tanggungan → dipertimbangkan'],
+            ['code' => 'R108', 'antecedents' => $a('sedang', 'sedang', 'sedang', 'sedang', 'sedikit'),  'consequent' => $T, 'description' => 'Profil mid-range + tanggungan sedikit → tidak layak tanpa penguat'],
+            ['code' => 'R109', 'antecedents' => $a('tinggi', 'rendah', 'sedang', 'sedang', 'sedikit'),  'consequent' => $D, 'description' => 'IPK tinggi + ekonomi rendah, profil moderat, tanggungan sedikit'],
+            ['code' => 'R110', 'antecedents' => $a('sedang', 'rendah', 'sedang', 'sedang', 'sedikit'),  'consequent' => $T, 'description' => 'IPK sedang + ekonomi rendah, tapi tanpa tanggungan tidak cukup'],
+            ['code' => 'R111', 'antecedents' => $a('tinggi', 'sedang', 'banyak', 'sedang', 'sedikit'),  'consequent' => $D, 'description' => 'IPK tinggi + akademis kuat + ekonomi menengah, tanggungan sedikit → dipertimbangkan'],
         ];
     }
 }

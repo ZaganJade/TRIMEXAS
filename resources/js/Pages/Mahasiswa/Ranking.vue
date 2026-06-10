@@ -122,7 +122,7 @@ function doSearch() {
                     </div>
                 </div>
 
-                <div v-else class="bento col-6 text-center">
+                <div v-else class="bento col-8 text-center">
                     <p class="text-[15px] text-[var(--muted)]">
                         Belum ada hasil seleksi yang completed.
                     </p>
