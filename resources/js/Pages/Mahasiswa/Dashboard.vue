@@ -65,7 +65,7 @@ const quickLinks = [
                 <!-- Pending -->
                 <article
                     v-if="profile.approval_status === 'pending'"
-                    class="bento col-6"
+                    class="bento col-8"
                 >
                     <div class="flex items-start gap-4">
                         <span class="bento-icon shrink-0" style="color: var(--warning); background: color-mix(in oklab, var(--warning) 14%, transparent); border-color: color-mix(in oklab, var(--warning) 28%, transparent)">
@@ -89,7 +89,7 @@ const quickLinks = [
                 <!-- Rejected -->
                 <article
                     v-else-if="profile.approval_status === 'rejected'"
-                    class="bento col-6"
+                    class="bento col-8"
                     style="border-color: color-mix(in oklab, var(--danger) 38%, var(--border))"
                 >
                     <div class="flex items-start gap-4">
@@ -116,7 +116,7 @@ const quickLinks = [
                 </article>
 
                 <!-- Approved -->
-                <article v-else class="bento col-6">
+                <article v-else class="bento col-8">
                     <div class="flex flex-wrap items-start justify-between gap-4">
                         <div class="flex items-start gap-4">
                             <span class="bento-icon shrink-0" style="color: var(--success); background: color-mix(in oklab, var(--success) 14%, transparent); border-color: color-mix(in oklab, var(--success) 28%, transparent)">
@@ -228,7 +228,7 @@ const quickLinks = [
                     </div>
                 </article>
 
-                <article v-else-if="latestBatch && !myResult" class="bento col-6">
+                <article v-else-if="latestBatch && !myResult" class="bento col-8">
                     <div class="flex items-start gap-4">
                         <span class="bento-icon shrink-0"><LineChart :size="20" /></span>
                         <div>
@@ -242,7 +242,7 @@ const quickLinks = [
 
                 <article
                     v-else-if="profile.approval_status === 'approved'"
-                    class="bento col-6"
+                    class="bento col-8"
                 >
                     <div class="flex items-start gap-4">
                         <span class="bento-icon shrink-0"><Clock :size="20" /></span>

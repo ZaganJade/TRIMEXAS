@@ -26,7 +26,7 @@ const nav = computed(() => {
         brand-suffix="Mahasiswa"
         :home-href="route('mahasiswa.dashboard')"
         :nav="nav"
-        max-width="max-w-4xl"
+        max-width="max-w-7xl"
     >
         <slot />
     </AppShell>

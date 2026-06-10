@@ -16,19 +16,49 @@ use Inertia\Response;
 
 class SelectionController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $batches = SelectionBatch::query()
+            ->select(['id', 'label', 'periode', 'tahun_akademik', 'status', 'created_at', 'total_candidates', 'total_eligible'])
+            ->when($request->input('q'), function ($q, $term) {
+                $like = '%' . $term . '%';
+                $q->where(function ($w) use ($like) {
+                    $w->where('label', 'ilike', $like)
+                        ->orWhere('periode', 'ilike', $like)
+                        ->orWhere('tahun_akademik', 'ilike', $like);
+                });
+            })
+            ->when($request->input('batch_id'), fn ($q, $id) => $q->where('id', $id))
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn (SelectionBatch $b) => [
+                'id' => $b->id,
+                'label' => $b->label,
+                'periode' => $b->periode,
+                'tahun_akademik' => $b->tahun_akademik,
+                'status' => $b->status,
+                'total_candidates' => $b->total_candidates,
+                'total_eligible' => $b->total_eligible,
+                'created_at' => $b->created_at?->toIso8601String(),
+            ]);
+
+        // Hitung mahasiswa approved yang akan diproses
+        $candidateCount = \App\Models\Student::query()
+            ->whereHas('user', fn ($q) => $q->where('approval_status', \App\Models\User::STATUS_APPROVED))
+            ->count();
+
         return Inertia::render('Admin/Selection/Run', [
-            'lastBatches' => SelectionBatch::query()
-                ->latest()
-                ->limit(5)
-                ->get(['id', 'label', 'status', 'created_at'])
-                ->map(fn (SelectionBatch $b) => [
-                    'id' => $b->id,
-                    'label' => $b->label,
-                    'status' => $b->status,
-                    'created_at' => $b->created_at?->toIso8601String(),
-                ]),
+            'batches' => $batches,
+            'candidateCount' => $candidateCount,
+            'filters' => [
+                'q' => $request->input('q', ''),
+                'batch_id' => $request->input('batch_id'),
+            ],
+            'periodeOptions' => [
+                ['value' => 'ganjil', 'label' => 'Ganjil (Sept–Feb)'],
+                ['value' => 'genap', 'label' => 'Genap (Mar–Agust)'],
+            ],
         ]);
     }
 
@@ -36,12 +66,18 @@ class SelectionController extends Controller
     {
         $data = $request->validate([
             'label' => ['required', 'string', 'max:120'],
+            'periode' => ['nullable', 'in:ganjil,genap'],
+            'tahun_akademik' => ['nullable', 'integer', 'min:2018', 'max:' . ((int) date('Y') + 1)],
         ], [
             'label.required' => 'Label batch wajib diisi.',
+            'periode.in' => 'Periode harus ganjil atau genap.',
+            'tahun_akademik.min' => 'Tahun akademik minimal 2018.',
         ]);
 
         $batch = SelectionBatch::create([
             'label' => $data['label'],
+            'periode' => $data['periode'] ?? null,
+            'tahun_akademik' => $data['tahun_akademik'] ?? null,
             'triggered_by' => $request->user()->id,
             'status' => SelectionBatch::STATUS_QUEUED,
         ]);
@@ -54,15 +90,21 @@ class SelectionController extends Controller
             ->withProperties(['label' => $batch->label])
             ->log('Selection batch started');
 
-        ProcessSelectionBatchJob::dispatch($batch->id)->onQueue('seleksi');
-
-        // Self-spawn worker (Decision D2). Dijalankan setelah dispatch.
-        WorkerManager::default(base_path())->ensureRunning();
+        // Local dev: jalankan job utama secara sinkron (chunk job akan dieksekusi
+        // inline oleh ProcessSelectionBatchJob). Tidak butuh worker terpisah.
+        // Production: dispatch ke queue 'seleksi' dan spawn worker via WorkerManager.
+        if (app()->environment('local') && config('queue.default') === 'database') {
+            ProcessSelectionBatchJob::dispatchSync($batch->id);
+        } else {
+            ProcessSelectionBatchJob::dispatch($batch->id)->onQueue('seleksi');
+            // Self-spawn worker (Decision D2). Dijalankan setelah dispatch.
+            WorkerManager::default(base_path())->ensureRunning();
+        }
 
         return redirect()->route('admin.selection.show', $batch->id);
     }
 
-    public function show(SelectionBatch $batch): Response
+    public function show(Request $request, SelectionBatch $batch): Response
     {
         $results = SelectionResult::query()
             ->where('batch_id', $batch->id)
@@ -92,10 +134,24 @@ class SelectionController extends Controller
                 'reasons' => $r->ineligibility_reasons,
             ]);
 
+        $batches = SelectionBatch::query()
+            ->where('id', '!=', $batch->id)
+            ->latest()
+            ->limit(50)
+            ->get(['id', 'label', 'periode', 'tahun_akademik'])
+            ->map(fn (SelectionBatch $b) => [
+                'id' => $b->id,
+                'label' => $b->label,
+                'periode' => $b->periode,
+                'tahun_akademik' => $b->tahun_akademik,
+            ]);
+
         return Inertia::render('Admin/Selection/Detail', [
             'batch' => [
                 'id' => $batch->id,
                 'label' => $batch->label,
+                'periode' => $batch->periode,
+                'tahun_akademik' => $batch->tahun_akademik,
                 'status' => $batch->status,
                 'total_candidates' => $batch->total_candidates,
                 'total_eligible' => $batch->total_eligible,
@@ -106,6 +162,11 @@ class SelectionController extends Controller
             ],
             'results' => $results,
             'ineligible' => $ineligible,
+            'batches' => $batches,
+            'filters' => [
+                'q' => $request->input('q', ''),
+                'batch_id' => $request->input('batch_id'),
+            ],
         ]);
     }
 

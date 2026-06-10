@@ -19,7 +19,7 @@ class AchievementController extends Controller
         $achievements = StudentAchievement::query()
             ->where('student_id', $student->id)
             ->orderByDesc('year')
-            ->get(['id', 'title', 'category', 'level', 'rank', 'year', 'score', 'verified_by_admin']);
+            ->get(['id', 'title', 'category', 'level', 'rank', 'year', 'score', 'verified_by_admin', 'certificate_path', 'certificate_original_name', 'certificate_size']);
 
         return Inertia::render('Mahasiswa/Achievements', [
             'achievements' => $achievements,
@@ -38,8 +38,19 @@ class AchievementController extends Controller
 
         $score = AchievementScorer::scoreFor($request->validated('level'), $request->validated('rank'));
 
+        $data = $request->validated();
+        unset($data['certificate']);
+
+        if ($request->hasFile('certificate')) {
+            $file = $request->file('certificate');
+            $path = $file->store("certificates/{$student->id}", 'public');
+            $data['certificate_path'] = $path;
+            $data['certificate_original_name'] = $file->getClientOriginalName();
+            $data['certificate_size'] = $file->getSize();
+        }
+
         StudentAchievement::create([
-            ...$request->validated(),
+            ...$data,
             'student_id' => $student->id,
             'score' => $score,
         ]);
@@ -53,8 +64,23 @@ class AchievementController extends Controller
 
         $score = AchievementScorer::scoreFor($request->validated('level'), $request->validated('rank'));
 
+        $data = $request->validated();
+        unset($data['certificate']);
+
+        if ($request->hasFile('certificate')) {
+            // Hapus file lama jika ada
+            if ($achievement->certificate_path && \Storage::disk('public')->exists($achievement->certificate_path)) {
+                \Storage::disk('public')->delete($achievement->certificate_path);
+            }
+            $file = $request->file('certificate');
+            $path = $file->store("certificates/{$achievement->student_id}", 'public');
+            $data['certificate_path'] = $path;
+            $data['certificate_original_name'] = $file->getClientOriginalName();
+            $data['certificate_size'] = $file->getSize();
+        }
+
         $achievement->fill([
-            ...$request->validated(),
+            ...$data,
             'score' => $score,
         ])->save();
 
@@ -64,6 +90,10 @@ class AchievementController extends Controller
     public function destroy(StudentAchievement $achievement): RedirectResponse
     {
         $this->ensureOwnedAndUnverified($achievement);
+
+        if ($achievement->certificate_path && \Storage::disk('public')->exists($achievement->certificate_path)) {
+            \Storage::disk('public')->delete($achievement->certificate_path);
+        }
 
         $achievement->delete();
 
