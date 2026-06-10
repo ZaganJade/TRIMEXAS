@@ -801,36 +801,58 @@
 /* =====================================================
    Bento grid layout
    ===================================================== */
+/* Bento grid default: 8 kolom di desktop. col-N artinya span N dari total.
+   - col-8 = full width
+   - col-4 = half
+   - col-2 = quarter
+   - col-3 = 3/8
+   - col-5 = 5/8
+   Responsif: 4 kolom di tablet, 1 kolom di mobile. */
 .bento-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 1.1rem;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 1.25rem;
 }
 
-/* Explicit spans that work on any direct child (cards or column stacks) */
-.bento-grid > .b-2 { grid-column: span 2; }
-.bento-grid > .b-3 { grid-column: span 3; }
-.bento-grid > .b-4 { grid-column: span 4; }
-.bento-grid > .b-6 { grid-column: span 6; }
+.bento {
+    min-width: 0; /* prevent overflow dari konten panjang */
+}
 
-/* Back-compat for the legacy 4-column span classes */
+.bento.col-1 { grid-column: span 1; }
 .bento.col-2 { grid-column: span 2; }
 .bento.col-3 { grid-column: span 3; }
 .bento.col-4 { grid-column: span 4; }
+.bento.col-5 { grid-column: span 5; }
+.bento.col-6 { grid-column: span 6; }
+.bento.col-7 { grid-column: span 7; }
+.bento.col-8 { grid-column: span 8; }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+    .bento-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .bento.col-1 { grid-column: span 1; }
+    .bento.col-2 { grid-column: span 1; }
+    .bento.col-3 { grid-column: span 2; }
+    .bento.col-4 { grid-column: span 2; }
+    .bento.col-5,
+    .bento.col-6,
+    .bento.col-7,
+    .bento.col-8 { grid-column: span 4; }
+}
+
+@media (max-width: 640px) {
     .bento-grid {
         grid-template-columns: 1fr;
     }
-    .bento-grid > .b-2,
-    .bento-grid > .b-3,
-    .bento-grid > .b-4,
-    .bento-grid > .b-6,
+    .bento.col-1,
     .bento.col-2,
     .bento.col-3,
-    .bento.col-4 {
-        grid-column: span 1;
-    }
+    .bento.col-4,
+    .bento.col-5,
+    .bento.col-6,
+    .bento.col-7,
+    .bento.col-8 { grid-column: span 1; }
 }
 
 /* =====================================================
@@ -866,7 +888,13 @@
 }
 
 .window-body {
-    padding: 1.5rem;
+    padding: 1.5rem 1.75rem;
+}
+
+@media (min-width: 1280px) {
+    .window-body {
+        padding: 1.75rem 2rem;
+    }
 }
 
 /* =====================================================

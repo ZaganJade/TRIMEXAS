@@ -61,7 +61,7 @@ function submit() {
             <div
                 v-if="error409"
                 role="alert"
-                class="bento col-6"
+                class="bento col-8"
                 style="border-color: color-mix(in oklab, var(--warning) 38%, var(--border)); background: color-mix(in oklab, var(--warning) 6%, var(--surface))"
             >
                 <p class="text-[14px] leading-relaxed" style="color: var(--warning)">

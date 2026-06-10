@@ -24,6 +24,13 @@ class AchievementRequest extends FormRequest
             'level' => ['required', 'in:'.implode(',', AchievementScorer::levels())],
             'rank' => ['required', 'in:'.implode(',', AchievementScorer::ranks())],
             'year' => ['required', 'integer', 'min:2000', 'max:'.((int) date('Y') + 1)],
+            'certificate' => [
+                $this->isMethod('post') ? 'required' : 'nullable',
+                'file',
+                'mimes:pdf',
+                'mimetypes:application/pdf',
+                'max:5120', // 5MB
+            ],
         ];
     }
 

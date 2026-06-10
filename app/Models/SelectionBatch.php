@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'label',
+    'periode',
+    'tahun_akademik',
     'triggered_by',
     'status',
     'total_candidates',
@@ -48,7 +50,12 @@ class SelectionBatch extends Model
         'total_eligible' => 'integer',
         'total_ineligible' => 'integer',
         'processed_count' => 'integer',
+        'tahun_akademik' => 'integer',
     ];
+
+    public const PERIODE_GANJIL = 'ganjil';
+
+    public const PERIODE_GENAP = 'genap';
 
     public function triggeredBy(): BelongsTo
     {

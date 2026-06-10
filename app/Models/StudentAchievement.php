@@ -21,6 +21,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
     'verified_by',
     'verified_at',
     'verification_note',
+    'certificate_path',
+    'certificate_original_name',
+    'certificate_size',
 ])]
 class StudentAchievement extends Model
 {

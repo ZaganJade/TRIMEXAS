@@ -82,12 +82,29 @@ class ProcessCandidateChunkJob implements ShouldQueue
             $result = $engine->run($candidate, $snapshots);
 
             if ($result instanceof FuzzyResult) {
-                $eligibleCount++;
+                // Lulus 4 gate (aktif, sem<=6, ipk>=3, approved) — dihitung fuzzy.
+                // Kategori akhir 'tidak_layak' (skor < threshold_1) tetap dicatat
+                // sebagai ineligible dengan alasan skor.
+                $finalEligible = $result->category !== \App\Domain\Fuzzy\RuleSnapshot::CONSEQUENT_TIDAK_LAYAK;
+                $threshold1 = (float) ($batch->snapshot_thresholds['threshold_1'] ?? 50);
+                $threshold2 = (float) ($batch->snapshot_thresholds['threshold_2'] ?? 75);
+
+                if ($finalEligible) {
+                    $eligibleCount++;
+                } else {
+                    $ineligibleCount++;
+                }
+
+                $reasons = $finalEligible ? null : [
+                    sprintf('Skor Z=%.2f di bawah threshold_1=%.2f', $result->score, $threshold1),
+                    sprintf('Batas dipertimbangkan: threshold_1=%.2f, threshold_2=%.2f', $threshold1, $threshold2),
+                ];
+
                 $resultRows[] = [
                     'batch_id' => $batch->id,
                     'student_id' => $student->id,
-                    'eligible' => true,
-                    'ineligibility_reasons' => null,
+                    'eligible' => $finalEligible,
+                    'ineligibility_reasons' => $reasons !== null ? json_encode($reasons) : null,
                     'input_snapshot' => json_encode([
                         'ipk' => $candidate->ipk,
                         'penghasilan' => $candidate->penghasilanOrtu,
@@ -119,6 +136,7 @@ class ProcessCandidateChunkJob implements ShouldQueue
                     ];
                 }
             } else {
+                $ineligibleCount++;
                 $ineligibleCount++;
                 $resultRows[] = [
                     'batch_id' => $batch->id,

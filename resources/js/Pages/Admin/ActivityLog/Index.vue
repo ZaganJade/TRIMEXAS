@@ -38,30 +38,30 @@ function applyFilters() {
                 <span class="window-title">Activity Log</span>
             </div>
             <div class="window-body">
-                <form class="bento-grid col-4" @submit.prevent="applyFilters">
-                    <div>
+                <form class="bento-grid" @submit.prevent="applyFilters">
+                    <div class="bento col-2">
                         <label class="eyebrow block mb-1">Log name</label>
                         <select v-model="filterForm.log_name" class="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm mono">
                             <option value="">Semua</option>
                             <option v-for="n in logNames" :key="n" :value="n">{{ n }}</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="bento col-2">
                         <label class="eyebrow block mb-1">User</label>
                         <select v-model="filterForm.user_id" class="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm">
                             <option value="">Semua</option>
                             <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="bento col-2">
                         <label class="eyebrow block mb-1">Dari</label>
                         <Input v-model="filterForm.from" type="date" />
                     </div>
-                    <div>
+                    <div class="bento col-2">
                         <label class="eyebrow block mb-1">Sampai</label>
                         <Input v-model="filterForm.to" type="date" />
                     </div>
-                    <div class="col-span-4">
+                    <div class="bento col-8">
                         <Button type="submit" variant="secondary" size="sm">Filter</Button>
                     </div>
                 </form>
