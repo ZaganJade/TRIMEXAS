@@ -327,7 +327,8 @@
     will-change: opacity, transform, filter;
 }
 
-.reveal-on-scroll.is-visible {
+.reveal-on-scroll.is-visible,
+.reveal-on-scroll[data-revealed] {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
@@ -801,12 +802,11 @@
 /* =====================================================
    Bento grid layout
    ===================================================== */
-/* Bento grid default: 8 kolom di desktop. col-N artinya span N dari total.
-   - col-8 = full width
-   - col-4 = half
-   - col-2 = quarter
-   - col-3 = 3/8
-   - col-5 = 5/8
+/* Bento grid default: 8 kolom di desktop.
+   b-N = span N dari 8 kolom total.
+   - b-5 = ~62% (big card, ranking)
+   - b-3 = ~38% (side stack)
+   - b-4 = half (wide cards)
    Responsif: 4 kolom di tablet, 1 kolom di mobile. */
 .bento-grid {
     display: grid;
@@ -818,6 +818,17 @@
     min-width: 0; /* prevent overflow dari konten panjang */
 }
 
+/* Grid span classes (b-N) */
+.b-1 { grid-column: span 1; }
+.b-2 { grid-column: span 2; }
+.b-3 { grid-column: span 3; }
+.b-4 { grid-column: span 4; }
+.b-5 { grid-column: span 5; }
+.b-6 { grid-column: span 6; }
+.b-7 { grid-column: span 7; }
+.b-8 { grid-column: span 8; }
+
+/* Legacy col-N aliases (kept for backward compat) */
 .bento.col-1 { grid-column: span 1; }
 .bento.col-2 { grid-column: span 2; }
 .bento.col-3 { grid-column: span 3; }
@@ -831,6 +842,14 @@
     .bento-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+    .b-1 { grid-column: span 1; }
+    .b-2 { grid-column: span 2; }
+    .b-3 { grid-column: span 2; }
+    .b-4 { grid-column: span 4; }
+    .b-5 { grid-column: span 4; }
+    .b-6 { grid-column: span 4; }
+    .b-7 { grid-column: span 4; }
+    .b-8 { grid-column: span 4; }
     .bento.col-1 { grid-column: span 1; }
     .bento.col-2 { grid-column: span 1; }
     .bento.col-3 { grid-column: span 2; }
@@ -845,6 +864,14 @@
     .bento-grid {
         grid-template-columns: 1fr;
     }
+    .b-1,
+    .b-2,
+    .b-3,
+    .b-4,
+    .b-5,
+    .b-6,
+    .b-7,
+    .b-8 { grid-column: span 1; }
     .bento.col-1,
     .bento.col-2,
     .bento.col-3,
@@ -1594,6 +1621,15 @@ button:focus-visible,
     transition: border-color 0.3s var(--ease-soft), transform 0.3s var(--ease-soft);
 }
 
+/* Preserve reveal-on-scroll transition on step-cards.
+   .step-card's own transition would override the reveal animation
+   because it appears later in the cascade with equal specificity. */
+.step-card.reveal-on-scroll:not([data-revealed]):not(.is-visible) {
+    transition: opacity 0.9s var(--ease-soft), transform 1s var(--ease-soft),
+        filter 0.9s var(--ease-soft), border-color 0.3s var(--ease-soft);
+    transition-delay: var(--delay, 0ms);
+}
+
 .step-card:hover {
     border-color: var(--border-strong);
     transform: translateY(-2px);
@@ -1869,7 +1905,8 @@ html.cursor-none * {
         opacity: 1;
         transition: none;
     }
-    .reveal-on-scroll {
+    .reveal-on-scroll,
+    .reveal-on-scroll[data-revealed] {
         filter: none;
     }
     .marquee-skew {

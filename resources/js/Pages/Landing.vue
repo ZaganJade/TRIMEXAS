@@ -198,6 +198,7 @@ function setupReveal() {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add("is-visible");
+                    entry.target.setAttribute("data-revealed", "");
                     io.unobserve(entry.target);
                 }
             });
@@ -900,7 +901,7 @@ onBeforeUnmount(() => {
 
             <div class="bento-grid mt-14">
                 <!-- Big card: live ranking surface -->
-                <article class="bento b-4 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
+                <article class="bento b-5 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
                     <div class="flex items-center justify-between">
                         <div>
                             <span class="bento-icon mb-3"><ListChecks :size="20" /></span>
@@ -935,7 +936,7 @@ onBeforeUnmount(() => {
                 </article>
 
                 <!-- Side stack -->
-                <div class="b-2 flex flex-col gap-[1.1rem]">
+                <div class="b-3 flex flex-col gap-[1.1rem]">
                     <article
                         v-for="(f, fi) in features"
                         :key="f.title"
@@ -951,7 +952,7 @@ onBeforeUnmount(() => {
                 </div>
 
                 <!-- Wide: report export -->
-                <article class="bento b-3 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
+                <article class="bento b-4 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
                     <span class="bento-icon mb-3"><FileSpreadsheet :size="20" /></span>
                     <h3 class="display-md text-[1.15rem] text-[var(--ink)]">Laporan siap kirim</h3>
                     <p class="mt-1.5 text-[14px] leading-relaxed text-[var(--muted)]">
@@ -965,7 +966,7 @@ onBeforeUnmount(() => {
                 </article>
 
                 <!-- Wide: workflow -->
-                <article class="bento b-3 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
+                <article class="bento b-4 reveal-on-scroll" data-cursor @pointermove="bentoGlow">
                     <span class="bento-icon mb-3"><Workflow :size="20" /></span>
                     <h3 class="display-md text-[1.15rem] text-[var(--ink)]">Alur kerja terpandu</h3>
                     <p class="mt-1.5 text-[14px] leading-relaxed text-[var(--muted)]">
