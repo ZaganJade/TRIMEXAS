@@ -1,6 +1,6 @@
 <script setup>
-import { Head, Link, usePage } from "@inertiajs/vue3";
-import { computed } from "vue";
+import { Head, Link, usePage, router } from "@inertiajs/vue3";
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 import {
     UserCheck,
@@ -14,16 +14,44 @@ import {
     TrendingUp,
     CheckCircle,
     Activity,
+    Loader2,
 } from "@lucide/vue";
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
+const isRefreshing = ref(false);
+let pollTimer = null;
+const POLL_INTERVAL = 30_000; // 30 seconds
+
+// ---------- Real-time polling ----------
+function refreshStats() {
+    isRefreshing.value = true;
+    router.reload({
+        only: ['stats', 'recent_activities'],
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            isRefreshing.value = false;
+        },
+        onError: () => {
+            isRefreshing.value = false;
+        },
+    });
+}
+
+onMounted(() => {
+    pollTimer = setInterval(refreshStats, POLL_INTERVAL);
+});
+
+onBeforeUnmount(() => {
+    if (pollTimer) clearInterval(pollTimer);
+});
 
 // Stats data
 const stats = computed(() => [
     {
         label: "Menunggu Verifikasi",
-        value: page.props.stats?.pending || "—",
+        value: page.props.stats?.pending ?? "—",
         hint: "Akun mahasiswa baru",
         icon: UserCheck,
         href: route("admin.students.pending"),
@@ -32,16 +60,16 @@ const stats = computed(() => [
     },
     {
         label: "Mahasiswa Aktif",
-        value: page.props.stats?.active || "—",
+        value: page.props.stats?.active ?? "—",
         hint: "Terdaftar & disetujui",
         icon: Users,
         href: route("admin.students.index"),
         color: "success",
-        trend: "+12%",
+        trend: null,
     },
     {
         label: "Batch Berjalan",
-        value: page.props.stats?.batch || "—",
+        value: page.props.stats?.batch ?? "—",
         hint: "Seleksi periode ini",
         icon: PlayCircle,
         href: route("admin.selection.run"),
@@ -50,12 +78,12 @@ const stats = computed(() => [
     },
     {
         label: "Total Seleksi",
-        value: page.props.stats?.total_selections || "—",
+        value: page.props.stats?.total_selections ?? "—",
         hint: "Batch yang selesai",
         icon: History,
         href: route("admin.history.index"),
         color: "info",
-        trend: "+3",
+        trend: null,
     },
 ]);
 
@@ -111,30 +139,21 @@ const actions = computed(() => [
     },
 ]);
 
-// Recent activities
-const recentActivities = computed(() => page.props.recent_activities || [
-    {
-        id: 1,
-        type: "verify",
-        message: "Memverifikasi Adelia Putri",
-        time: "5 menit lalu",
-        icon: CheckCircle,
-    },
-    {
-        id: 2,
-        type: "selection",
-        message: "Menjalankan Batch #07",
-        time: "1 jam lalu",
-        icon: PlayCircle,
-    },
-    {
-        id: 3,
-        type: "criteria",
-        message: "Mengubah kriteria IPK",
-        time: "3 jam lalu",
-        icon: SlidersHorizontal,
-    },
-]);
+// Map log_name to icon component
+const activityIconMap = {
+    user: UserCheck,
+    student: Users,
+    selection: PlayCircle,
+    default: Activity,
+};
+
+// Recent activities — from backend (polled every 30s)
+const recentActivities = computed(() =>
+    (page.props.recent_activities || []).map((a) => ({
+        ...a,
+        icon: activityIconMap[a.type] || activityIconMap.default,
+    }))
+);
 
 // System status
 const systemStatus = computed(() => ({
@@ -153,10 +172,21 @@ const systemStatus = computed(() => ({
                  DASHBOARD HEADER
                  ========================================================= -->
             <header class="page-header reveal-on-scroll">
-                <div>
-                    <h1 class="page-title">Dashboard</h1>
-                    <p class="page-subtitle">Pusat kendali seleksi beasiswa Triv × MEXC</p>
+                <div class="flex items-center gap-3">
+                    <div>
+                        <h1 class="page-title">Dashboard</h1>
+                        <p class="page-subtitle">Pusat kendali seleksi beasiswa Triv × MEXC</p>
+                    </div>
                 </div>
+                <button
+                    class="refresh-btn"
+                    :class="{ 'is-refreshing': isRefreshing }"
+                    @click="refreshStats"
+                    title="Segarkan data"
+                >
+                    <Loader2 :size="14" class="refresh-icon" />
+                    <span class="refresh-label">Live</span>
+                </button>
             </header>
 
             <!-- =========================================================
@@ -317,6 +347,10 @@ const systemStatus = computed(() => ({
    ===================================================== */
 .page-header {
     margin-bottom: 2rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
 }
 
 .page-title {
@@ -331,6 +365,59 @@ const systemStatus = computed(() => ({
     margin-top: 0.5rem;
     font-size: 15px;
     color: var(--muted);
+}
+
+/* =====================================================
+   Live Refresh Button
+   ===================================================== */
+.refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+.refresh-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.refresh-btn.is-refreshing .refresh-icon {
+    animation: spin 0.8s linear infinite;
+}
+
+.refresh-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.refresh-btn.is-refreshing .refresh-label {
+    color: var(--primary);
+}
+
+.refresh-btn::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* =====================================================
@@ -739,6 +826,9 @@ const systemStatus = computed(() => ({
 .reveal-on-scroll {
     animation: rise-in 0.5s ease-out forwards;
     opacity: 0;
+    /* Override global blur — no IntersectionObserver on admin pages */
+    filter: blur(0);
+    transform: translateY(20px);
 }
 
 @keyframes rise-in {
