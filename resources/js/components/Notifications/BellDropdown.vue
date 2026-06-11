@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, nextTick } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { Bell } from "@lucide/vue";
 
 const open = ref(false);

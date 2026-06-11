@@ -342,9 +342,9 @@ onBeforeUnmount(() => {
         </aside>
 
         <!-- Main Content -->
-        <main 
-        class="admin-main"
-        :class="{ 'main-sidebar-expanded': isSidebarOpen && !isMobileMenuOpen }" 
+        <main
+            class="admin-main"
+            :class="{ 'main-sidebar-expanded': isSidebarOpen && !isMobileMenuOpen }"
         >
             <!-- Top Header -->
             <header class="admin-header">
