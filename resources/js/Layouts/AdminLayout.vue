@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
         <aside
             class="admin-sidebar"
             :class="{
-                'sidebar-collapsed': !isSidebarOpen,
+                'sidebar-expanded': isSidebarOpen,
                 'sidebar-mobile-open': isMobileMenuOpen,
             }"
             @mouseenter="onMouseEnterSidebar"
@@ -342,7 +342,10 @@ onBeforeUnmount(() => {
         </aside>
 
         <!-- Main Content -->
-        <main class="admin-main">
+        <main 
+        class="admin-main"
+        :class="{ 'main-sidebar-expanded': isSidebarOpen && !isMobileMenuOpen }" 
+        >
             <!-- Top Header -->
             <header class="admin-header">
                 <div class="flex items-center gap-4">
@@ -422,7 +425,7 @@ onBeforeUnmount(() => {
     top: 0;
     left: 0;
     height: 100vh;
-    width: 260px;
+    width: 72px;
     background: var(--surface);
     border-right: 1px solid var(--border);
     display: flex;
@@ -431,8 +434,8 @@ onBeforeUnmount(() => {
     transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.admin-sidebar.sidebar-collapsed {
-    width: 72px;
+.admin-sidebar.sidebar-expanded {
+    width: 260px;
 }
 
 /* Mobile Sidebar */
@@ -447,7 +450,7 @@ onBeforeUnmount(() => {
         transform: translateX(0);
     }
 
-    .admin-sidebar.sidebar-collapsed {
+    .admin-sidebar.sidebar-expanded {
         width: 280px;
     }
 }
@@ -794,16 +797,17 @@ onBeforeUnmount(() => {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-left: 260px;
+    margin-left: 72px;
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar-collapsed ~ .admin-main {
-    margin-left: 72px;
+.admin-main.main-sidebar-expanded {
+    margin-left: 260px; 
 }
 
 @media (max-width: 1024px) {
-    .admin-main {
+    .admin-main,
+    .admin-main.main-sidebar-expanded {
         margin-left: 0;
     }
 }

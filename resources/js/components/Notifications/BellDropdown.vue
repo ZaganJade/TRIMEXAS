@@ -1,17 +1,31 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, nextTick } from "vue";
 import { Bell } from "@lucide/vue";
 
 const open = ref(false);
 const notifications = ref([]);
 const unread = ref(0);
+const dropdownRef = ref(null);
 let pollHandle = null;
+
+const handleClickOutside = (event) => {
+    if (open.value && dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+        open.value = false;
+    }
+};
 
 async function fetchNotifications() {
     try {
         const res = await fetch(route("notifications.index"), {
             headers: { Accept: "application/json" },
         });
+        
+        // Hentikan penembakan jika sesi sudah mati/unauthorized
+        if (res.status === 401 || res.status === 419 || res.status === 403) {
+            if (pollHandle) clearInterval(pollHandle);
+            return;
+        }
+
         if (!res.ok) return;
         const json = await res.json();
         notifications.value = json.notifications ?? [];
@@ -47,15 +61,17 @@ function toggle() {
 onMounted(() => {
     fetchNotifications();
     pollHandle = setInterval(fetchNotifications, 30000);
+    document.addEventListener("click", handleClickOutside);
 });
 
 onBeforeUnmount(() => {
     if (pollHandle) clearInterval(pollHandle);
+    document.removeEventListener("click", handleClickOutside);
 });
 </script>
 
 <template>
-    <div class="relative">
+    <div class="relative" ref="dropdownRef">
         <button
             type="button"
             class="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/30"
