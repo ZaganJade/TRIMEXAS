@@ -139,7 +139,7 @@ onBeforeUnmount(stopPoll);
 
         <!-- Ringkasan 2 kartu -->
         <div class="bento-grid mt-6">
-            <Card variant="elevated" class="col-4 p-6">
+            <Card variant="elevated" class="b-4 p-6">
                 <div class="flex items-center gap-3">
                     <span class="bento-icon" style="background: color-mix(in oklab, var(--success) 18%, transparent); color: var(--success)">
                         <CheckCircle2 :size="18" />
@@ -150,7 +150,7 @@ onBeforeUnmount(stopPoll);
                     </div>
                 </div>
             </Card>
-            <Card variant="elevated" class="col-4 p-6">
+            <Card variant="elevated" class="b-4 p-6">
                 <div class="flex items-center gap-3">
                     <span class="bento-icon" style="background: color-mix(in oklab, var(--danger) 18%, transparent); color: var(--danger)">
                         <XCircle :size="18" />
@@ -196,7 +196,15 @@ onBeforeUnmount(stopPoll);
             </div>
             <div class="window-body p-0 overflow-auto">
                 <table class="w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)]">
+                    <colgroup>
+                        <col class="w-[3.5rem]" />
+                        <col />
+                        <col class="w-[9rem]" />
+                        <col class="w-[6rem]" />
+                        <col class="w-[10rem]" />
+                        <col class="w-[5rem]" />
+                    </colgroup>
+                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)] sticky top-0">
                         <tr>
                             <th class="px-4 py-3">#</th>
                             <th class="px-4 py-3">Nama</th>
@@ -207,11 +215,11 @@ onBeforeUnmount(stopPoll);
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--border)]">
-                        <tr v-for="r in filteredResults" :key="r.student_id" class="rank-row">
-                            <td class="px-4 py-3 rank-pos mono">{{ r.rank }}</td>
-                            <td class="px-4 py-3 font-medium">{{ r.name }}</td>
-                            <td class="px-4 py-3 text-[var(--muted)] mono">{{ r.nim }}</td>
-                            <td class="px-4 py-3 text-right mono tnum">{{ Number(r.score).toFixed(2) }}</td>
+                        <tr v-for="r in filteredResults" :key="r.student_id" class="hover:bg-[var(--surface-2)] transition-colors">
+                            <td class="px-4 py-3 mono text-[var(--muted)] text-center">{{ r.rank }}</td>
+                            <td class="px-4 py-3 font-medium whitespace-nowrap">{{ r.name }}</td>
+                            <td class="px-4 py-3 text-[var(--muted)] mono whitespace-nowrap">{{ r.nim }}</td>
+                            <td class="px-4 py-3 text-right mono tnum font-medium">{{ Number(r.score).toFixed(2) }}</td>
                             <td class="px-4 py-3"><span class="tag capitalize" :class="categoryVariant(r.category)">{{ r.category }}</span></td>
                             <td class="px-4 py-3">
                                 <Link :href="route('admin.selection.audit', { batch: batch.id, candidate: r.student_id })" class="text-[var(--primary)] hover:underline text-sm">Audit</Link>
@@ -234,7 +242,12 @@ onBeforeUnmount(stopPoll);
             </div>
             <div class="window-body p-0 overflow-auto">
                 <table class="w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)]">
+                    <colgroup>
+                        <col />
+                        <col class="w-[9rem]" />
+                        <col class="w-[40%]" />
+                    </colgroup>
+                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)] sticky top-0">
                         <tr>
                             <th class="px-4 py-3">Nama</th>
                             <th class="px-4 py-3">NIM</th>
@@ -247,9 +260,9 @@ onBeforeUnmount(stopPoll);
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--border)]">
-                        <tr v-for="row in filteredIneligible" :key="row.student_id">
-                            <td class="px-4 py-3 font-medium">{{ row.name }}</td>
-                            <td class="px-4 py-3 text-[var(--muted)] mono">{{ row.nim }}</td>
+                        <tr v-for="row in filteredIneligible" :key="row.student_id" class="hover:bg-[var(--surface-2)] transition-colors">
+                            <td class="px-4 py-3 font-medium whitespace-nowrap">{{ row.name }}</td>
+                            <td class="px-4 py-3 text-[var(--muted)] mono whitespace-nowrap">{{ row.nim }}</td>
                             <td class="px-4 py-3 text-[13px]">
                                 <ul class="space-y-1">
                                     <li v-for="(r, i) in reasonList(row)" :key="i" class="flex items-start gap-2">

@@ -79,7 +79,7 @@ function statusVariant(status) {
 
         <!-- Status ringkas kandidat -->
         <div class="bento-grid mt-6" style="--delay: 40ms">
-            <Card variant="elevated" class="col-4 p-6">
+            <Card variant="elevated" class="b-4 p-6">
                 <div class="flex items-center gap-3">
                     <span class="bento-icon" style="background: var(--primary-soft); color: var(--primary)">
                         <Users :size="18" />
@@ -93,7 +93,7 @@ function statusVariant(status) {
                     Mahasiswa approved yang akan diproses saat batch baru dijalankan.
                 </p>
             </Card>
-            <Card variant="elevated" class="col-4 p-6">
+            <Card variant="elevated" class="b-4 p-6">
                 <div class="flex items-center gap-3">
                     <span class="bento-icon" style="background: color-mix(in oklab, var(--accent) 18%, transparent); color: var(--accent)">
                         <Play :size="18" />
@@ -111,7 +111,7 @@ function statusVariant(status) {
 
         <div class="bento-grid mt-6" style="--delay: 100ms">
             <!-- Form batch baru -->
-            <Card variant="elevated" class="col-4 p-6">
+            <Card variant="elevated" class="b-4 p-6">
                 <h2 class="display-md flex items-center gap-2 text-[1.15rem] text-[var(--ink)]">
                     <Play :size="18" />
                     Batch baru
@@ -144,7 +144,7 @@ function statusVariant(status) {
             </Card>
 
             <!-- Riwayat batch -->
-            <Card variant="outline" class="col-4 overflow-hidden">
+            <Card variant="outline" class="b-4 overflow-hidden">
                 <div class="window-bar">
                     <span class="window-title text-xs">Riwayat batch</span>
                     <span class="ml-auto mono text-[10px] text-[var(--muted)]">{{ batches.length }} entri</span>
