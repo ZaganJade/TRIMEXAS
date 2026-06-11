@@ -152,7 +152,7 @@ const systemStatus = computed(() => ({
             <!-- =========================================================
                  DASHBOARD HEADER
                  ========================================================= -->
-            <header class="page-header reveal-on-scroll">
+            <header class="page-header">
                 <div>
                     <h1 class="page-title">Dashboard</h1>
                     <p class="page-subtitle">Pusat kendali seleksi beasiswa Triv × MEXC</p>
@@ -162,7 +162,7 @@ const systemStatus = computed(() => ({
             <!-- =========================================================
                  STATS GRID
                  ========================================================= -->
-            <section class="stats-section reveal-on-scroll">
+            <section class="stats-section">
                 <div class="stats-grid">
                     <Link
                         v-for="stat in stats"
@@ -197,7 +197,7 @@ const systemStatus = computed(() => ({
                  ========================================================= -->
             <div class="main-content-grid">
                 <!-- Quick Actions -->
-                <section class="quick-actions-section reveal-on-scroll">
+                <section class="quick-actions-section">
                     <div class="section-header">
                         <h2 class="section-title">Aksi Cepat</h2>
                         <p class="section-subtitle">Lompat langsung ke modul yang sering digunakan</p>
@@ -231,7 +231,7 @@ const systemStatus = computed(() => ({
                 <!-- Right Sidebar -->
                 <aside class="dashboard-sidebar">
                     <!-- System Status -->
-                    <div class="sidebar-card reveal-on-scroll">
+                    <div class="sidebar-card">
                         <div class="flex items-center justify-between">
                             <h3 class="sidebar-card-title">Status Sistem</h3>
                             <span class="status-dot">
@@ -254,7 +254,7 @@ const systemStatus = computed(() => ({
                     </div>
 
                     <!-- Recent Activity -->
-                    <div class="sidebar-card reveal-on-scroll">
+                    <div class="sidebar-card">
                         <div class="flex items-center justify-between">
                             <h3 class="sidebar-card-title">Aktivitas Terbaru</h3>
                             <Link
@@ -284,7 +284,7 @@ const systemStatus = computed(() => ({
                     </div>
 
                     <!-- Quick Tip -->
-                    <div class="sidebar-card sidebar-tip reveal-on-scroll">
+                    <div class="sidebar-card sidebar-tip">
                         <div class="flex items-start gap-3">
                             <div class="tip-icon">
                                 <Activity :size="16" />
