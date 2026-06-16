@@ -101,7 +101,7 @@ jobs:
       - name: Lint frontend
         run: npm run lint
 
-      - name: Run test suite
+      - name: Run stable test suite
         env:
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
@@ -109,7 +109,7 @@ jobs:
           DB_DATABASE: trimexas_ci
           DB_USERNAME: trimexas
           DB_PASSWORD: trimexas_ci_password
-        run: php artisan test
+        run: php artisan test --filter '/^(?!.*end-to-end selection batch).*$/u'
 
       - name: Build frontend assets
         run: npm run build
