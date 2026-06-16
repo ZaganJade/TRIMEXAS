@@ -1,0 +1,178 @@
+name: Main CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: trimexas-main-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: '8.3'
+  NODE_VERSION: '22'
+  COMPOSER_CACHE_DIR: /tmp/composer-cache
+
+jobs:
+  ci:
+    name: Test, lint, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: trimexas_ci
+          POSTGRES_USER: trimexas
+          POSTGRES_PASSWORD: trimexas_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U trimexas -d trimexas_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, gd, intl, pcntl, pdo_pgsql, pdo_sqlite, redis, sockets, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.COMPOSER_CACHE_DIR }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Prepare Laravel environment
+        run: |
+          set -euo pipefail
+          cat > .env <<'ENV'
+          APP_NAME=TRIMEXAS
+          APP_ENV=testing
+          APP_KEY=base64:KcJjiQ1lj8o2JPXoLFPY5XlA4G4P6aLQfS6o1x74vE8=
+          APP_DEBUG=true
+          APP_URL=http://localhost
+          LOG_CHANNEL=stack
+          DB_CONNECTION=pgsql
+          DB_HOST=127.0.0.1
+          DB_PORT=5432
+          DB_DATABASE=trimexas_ci
+          DB_USERNAME=trimexas
+          DB_PASSWORD=trimexas_ci_password
+          CACHE_STORE=array
+          SESSION_DRIVER=array
+          QUEUE_CONNECTION=sync
+          MAIL_MAILER=array
+          BROADCAST_CONNECTION=null
+          ENV
+
+      - name: Validate Composer manifest
+        run: composer validate --strict --no-check-publish
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install Node dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Run test suite
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: trimexas_ci
+          DB_USERNAME: trimexas
+          DB_PASSWORD: trimexas_ci_password
+        run: php artisan test
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Validate production Docker Compose
+        run: docker compose -f docker-compose.prod.yml config --quiet
+
+  deploy:
+    name: Deploy main to VPS
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: trimexas-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Deploy through SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          command_timeout: 25m
+          script: |
+            set -euo pipefail
+
+            PROJECT_PATH="/opt/project-masters/TRIMEXAS"
+            BRANCH="main"
+            COMPOSE="docker compose -f docker-compose.prod.yml"
+            SERVICE="app"
+            HEALTH_URL="https://trimexas.vibedev.web.id"
+
+            cd "$PROJECT_PATH"
+
+            git fetch --prune origin "$BRANCH"
+
+            if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+              echo "Server working tree has local changes; stashing them before main deploy."
+              git stash push --include-untracked -m "pre-cicd-deploy-$(date -u +%Y%m%dT%H%M%SZ)" || true
+            fi
+
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            if [ ! -f .env ]; then
+              echo "Deployment stopped: $PROJECT_PATH/.env is missing. Keep production secrets on the server, not in GitHub Actions."
+              exit 1
+            fi
+
+            $COMPOSE config --quiet
+            $COMPOSE build --pull "$SERVICE"
+            $COMPOSE up -d --remove-orphans "$SERVICE"
+            $COMPOSE exec -T "$SERVICE" php artisan migrate --force
+            $COMPOSE exec -T "$SERVICE" php artisan optimize:clear
+            $COMPOSE exec -T "$SERVICE" php artisan config:cache
+            $COMPOSE exec -T "$SERVICE" php artisan route:cache
+            $COMPOSE exec -T "$SERVICE" php artisan view:cache
+            $COMPOSE exec -T "$SERVICE" php -r 'exit(extension_loaded("pdo_pgsql") ? 0 : 1);'
+            $COMPOSE ps "$SERVICE"
+
+            curl -fsSIL --max-time 15 "$HEALTH_URL" >/dev/null
