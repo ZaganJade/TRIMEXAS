@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    image: trimexas-app:main
+    container_name: trimexas-app
+    restart: unless-stopped
+    mem_limit: 384m
+    cpus: "0.75"
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "127.0.0.1:${APP_FPM_PORT:-9083}:9000"
+    volumes:
+      - trimexas-public:/var/www/public
+      - trimexas-storage:/var/www/storage
+      - trimexas-cache:/var/www/bootstrap/cache
+    networks:
+      - trimexas
+      - global-db-net
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(extension_loaded(\"pdo_pgsql\") ? 0 : 1);'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  trimexas:
+    name: trimexas
+    driver: bridge
+  global-db-net:
+    external: true
+
+volumes:
+  trimexas-public:
+  trimexas-storage:
+  trimexas-cache:
