@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
             CriteriaSeeder::class,
             OutputThresholdSeeder::class,
             RuleSeeder::class,
+            StudentUserSeeder::class,
+            StudentSeeder::class,
+            StudentAchievementSeeder::class,
         ]);
     }
 }

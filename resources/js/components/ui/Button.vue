@@ -72,7 +72,11 @@ const variants = cva(
     }
 );
 
-const tag = computed(() => (props.href ? Link : props.as));
+const tag = computed(() => {
+    if (!props.href) return props.as;
+    if (props.as === "a") return "a";
+    return Link;
+});
 const classes = computed(() =>
     cn(variants({ variant: props.variant, size: props.size }))
 );

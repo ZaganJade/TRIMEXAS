@@ -5,7 +5,7 @@
  * (dark-first electric-blue) so every authenticated page feels connected.
  */
 import { Link, useForm, usePage } from "@inertiajs/vue3";
-import { computed } from "vue";
+import { computed, ref, watch, onMounted, nextTick } from "vue";
 import { SunMedium, MoonStar, LogOut } from "@lucide/vue";
 import AppAtmosphere from "@/components/AppAtmosphere.vue";
 import BellDropdown from "@/components/Notifications/BellDropdown.vue";
@@ -27,6 +27,29 @@ const logoutForm = useForm({});
 function logout() {
     logoutForm.post(route("logout"));
 }
+
+const mobileNavContainer = ref(null);
+
+const scrollToActiveTab = async () => {
+    await nextTick();     
+    if (!mobileNavContainer.value) return; 
+    const activeEl = mobileNavContainer.value.querySelector('.tag-primary');
+    if (activeEl) {
+        activeEl.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest', 
+            inline: 'center' 
+        });
+    }
+};
+
+onMounted(() => {
+    scrollToActiveTab();
+});
+
+watch(() => page.url, () => {
+    scrollToActiveTab();
+});
 </script>
 
 <template>
@@ -103,6 +126,7 @@ function logout() {
 
                 <!-- Mobile nav row -->
                 <div
+                    ref="mobileNavContainer"
                     v-if="nav.length"
                     class="mt-2 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden"
                 >
