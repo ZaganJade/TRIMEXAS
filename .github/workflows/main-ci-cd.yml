@@ -166,7 +166,16 @@ jobs:
 
             $COMPOSE config --quiet
             $COMPOSE build --pull "$SERVICE"
-            $COMPOSE up -d --remove-orphans "$SERVICE"
+            $COMPOSE up -d --remove-orphans --force-recreate "$SERVICE"
+
+            CONTAINER_ID="$($COMPOSE ps -q "$SERVICE")"
+            if [ -z "$CONTAINER_ID" ]; then
+              echo "Deployment stopped: unable to resolve running container for $SERVICE."
+              exit 1
+            fi
+            rm -rf public/build
+            docker cp "${CONTAINER_ID}:/var/www/public/build" public/build
+
             $COMPOSE exec -T "$SERVICE" php artisan migrate --force
             $COMPOSE exec -T "$SERVICE" php artisan optimize:clear
             $COMPOSE exec -T "$SERVICE" php artisan config:cache

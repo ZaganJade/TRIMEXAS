@@ -20,7 +20,6 @@ services:
     ports:
       - "127.0.0.1:${APP_FPM_PORT:-9083}:9000"
     volumes:
-      - trimexas-public:/var/www/public
       - trimexas-storage:/var/www/storage
       - trimexas-cache:/var/www/bootstrap/cache
     networks:
@@ -40,6 +39,5 @@ networks:
     external: true
 
 volumes:
-  trimexas-public:
   trimexas-storage:
   trimexas-cache:
