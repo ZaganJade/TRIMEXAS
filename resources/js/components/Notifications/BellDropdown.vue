@@ -1,5 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from "vue";
+import { Link } from "@inertiajs/vue3";
 import { Bell } from "@lucide/vue";
 
 const open = ref(false);
@@ -14,13 +15,20 @@ const handleClickOutside = (event) => {
     }
 };
 
+function notificationHref(notification) {
+    return notification.data?.action_url ?? null;
+}
+
+function notificationLabel(notification) {
+    return notification.data?.action_label ?? "Lihat detail";
+}
+
 async function fetchNotifications() {
     try {
         const res = await fetch(route("notifications.index"), {
             headers: { Accept: "application/json" },
         });
-        
-        // Hentikan penembakan jika sesi sudah mati/unauthorized
+
         if (res.status === 401 || res.status === 419 || res.status === 403) {
             if (pollHandle) clearInterval(pollHandle);
             return;
@@ -103,6 +111,17 @@ onBeforeUnmount(() => {
                     <p class="text-sm" :class="{ 'font-medium': !n.read_at }">
                         {{ n.data?.message ?? n.type }}
                     </p>
+                    <p v-if="n.data?.summary" class="mt-1 text-[12px] text-[var(--muted)]">
+                        {{ n.data.summary }}
+                    </p>
+                    <Link
+                        v-if="notificationHref(n)"
+                        :href="notificationHref(n)"
+                        class="mt-2 inline-flex text-[12px] font-medium text-[var(--primary)] hover:underline"
+                        @click="open = false"
+                    >
+                        {{ notificationLabel(n) }}
+                    </Link>
                     <p class="mt-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
                         {{ new Date(n.created_at).toLocaleString("id-ID") }}
                     </p>
