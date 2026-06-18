@@ -232,233 +232,116 @@ function alphaWidth(alpha) {
                 </div>
             </header>
 
-            <!-- Ineligible state -->
-            <section v-if="!result.eligible" class="ineligible-banner reveal reveal-delay-1" aria-live="polite">
-                <div class="ineligible-icon" aria-hidden="true">
-                    <Scale :size="20" />
+        <Card v-if="!result.eligible" variant="outline" class="mt-6 p-5 border-red-400 bg-red-50">
+            <div class="flex items-start gap-3">
+                <div class="mt-0.5 rounded-full bg-red-100 p-1.5 text-red-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 </div>
                 <div>
-                    <h2 class="ineligible-title">Tidak Memenuhi Syarat Seleksi</h2>
-                    <p class="ineligible-copy">
-                        Kandidat tidak melanjutkan ke perhitungan fuzzy karena gagal prasyarat eligibility.
-                    </p>
-                    <ul class="reason-list">
-                        <li v-for="reason in result.ineligibility_reasons" :key="reason" class="reason-item">
-                            <span class="reason-dot" />
-                            {{ reason }}
-                        </li>
+                    <p class="font-semibold text-red-800 text-lg">Kandidat Tidak Memenuhi Syarat</p>
+                    <p class="text-sm text-red-700 mt-1">Sistem otomatis menggugurkan kandidat ini karena alasan berikut:</p>
+                    <ul class="mt-3 list-disc pl-5 text-sm text-red-700 font-medium space-y-1">
+                        <li v-for="r in result.ineligibility_reasons" :key="r">{{ r }}</li>
                     </ul>
                 </div>
-            </section>
+            </div>
+        </Card>
 
-            <!-- Verdict hero -->
-            <section v-else class="verdict-grid reveal reveal-delay-1">
-                <Card variant="elevated" class="verdict-card">
-                    <div class="verdict-top">
+        <Card v-else variant="elevated" class="mt-6 p-6 border-l-4 border-l-emerald-500">
+            <p class="eyebrow">Skor Akhir Kelayakan (Defuzzifikasi)</p>
+            <p class="display text-gradient mt-2">
+                {{ result.score?.toFixed?.(2) ?? result.score }}
+            </p>
+            <p class="mt-2 text-sm text-[var(--muted)] capitalize flex items-center gap-2">
+                Kategori Final: 
+                <span class="tag" :class="{
+                    'tag-success': result.category === 'sangat_layak' || result.status === 'sangat_layak',
+                    'tag-primary': result.category === 'layak' || result.status === 'layak',
+                    'tag-warning': result.category === 'dipertimbangkan' || result.status === 'dipertimbangkan',
+                    'tag-danger': result.category === 'tidak_layak' || result.status === 'tidak_layak'
+                }">
+                    {{ (result.status ?? result.category).replace('_', ' ') }}
+                </span>
+                <span v-if="result.rank" class="mono font-semibold text-[var(--ink)] ml-2"> · Peringkat {{ result.rank }}</span>
+            </p>
+        </Card>
+
+        <div class="mt-6">
+            <p class="font-semibold text-[15px] mb-4">Data Input & Hasil Fuzzifikasi (Derajat Keanggotaan)</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" v-if="result.input_snapshot">
+                <template v-for="(label, key) in { ipk: 'IPK', penghasilan: 'Penghasilan Orang Tua', prestasi_akademis: 'Skor Prestasi Akademis', prestasi_non_akademis: 'Skor Prestasi Non Akademis', tanggungan: 'Tanggungan Keluarga' }" :key="key">
+                    <Card variant="outline" class="p-4 flex flex-col justify-between hover:border-[var(--primary)] transition-colors">
                         <div>
-                            <p class="eyebrow">Skor Akhir · Tsukamoto</p>
-                            <p class="score-display tnum">{{ scoreValue?.toFixed?.(2) ?? scoreValue }}</p>
+                            <p class="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">{{ label }}</p>
+                            <p class="text-2xl font-bold text-[var(--ink)] mt-1">
+                                <span v-if="key === 'penghasilan'">Rp {{ Number(result.input_snapshot[key] || 0).toLocaleString('id-ID') }}</span>
+                                <span v-else>{{ result.input_snapshot[key] }}</span>
+                            </p>
                         </div>
-                        <div class="verdict-badges">
-                            <span class="tag capitalize" :class="categoryMeta.tag">{{ categoryMeta.label }}</span>
-                            <span v-if="result.rank" class="rank-pill mono">Rank #{{ result.rank }}</span>
-                        </div>
-                    </div>
-
-                    <div class="threshold-track" role="img" :aria-label="`Skor ${scoreValue} pada skala 0-100`">
-                        <div class="threshold-zones">
-                            <span class="zone zone-low">0 – {{ threshold1 }}</span>
-                            <span class="zone zone-mid">{{ threshold1 }} – {{ threshold2 }}</span>
-                            <span class="zone zone-high">{{ threshold2 }} – 100</span>
-                        </div>
-                        <div class="threshold-bar">
-                            <div class="threshold-marker t1" :style="{ left: `${threshold1}%` }">
-                                <span class="marker-label mono">T₁</span>
-                            </div>
-                            <div class="threshold-marker t2" :style="{ left: `${threshold2}%` }">
-                                <span class="marker-label mono">T₂</span>
-                            </div>
-                            <div class="score-pin" :style="{ left: `${scorePosition}%` }">
-                                <span class="score-pin-dot" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <p class="threshold-caption">
-                        T₁ = {{ threshold1 }} (batas layak), T₂ = {{ threshold2 }} (batas dipertimbangkan).
-                        Skor dihitung dari agregasi rule yang aktif (α &gt; 0).
-                    </p>
-                </Card>
-
-                <div class="insight-cards">
-                    <Card variant="outline" class="insight-card">
-                        <div class="insight-icon insight-icon-primary">
-                            <Zap :size="18" />
-                        </div>
-                        <p class="insight-value mono tnum">{{ firedRules.length }}</p>
-                        <p class="insight-label">Rule aktif</p>
-                    </Card>
-                    <Card variant="outline" class="insight-card">
-                        <div class="insight-icon insight-icon-accent">
-                            <Target :size="18" />
-                        </div>
-                        <p class="insight-value mono tnum">{{ rulesCatalog.length }}</p>
-                        <p class="insight-label">Rule dalam snapshot</p>
-                    </Card>
-                    <Card variant="outline" class="insight-card">
-                        <div class="insight-icon insight-icon-success">
-                            <Sparkles :size="18" />
-                        </div>
-                        <p class="insight-value capitalize">{{ categoryMeta.label }}</p>
-                        <p class="insight-label">Kategori output</p>
-                    </Card>
-                </div>
-            </section>
-
-            <!-- Input + Fuzzification -->
-            <section class="analysis-grid reveal reveal-delay-2">
-                <Card variant="elevated" class="panel-card">
-                    <div class="panel-head">
-                        <h2 class="panel-title">Input Crisp</h2>
-                        <p class="panel-desc">Nilai mentah kandidat yang masuk ke mesin fuzzy.</p>
-                    </div>
-                    <div class="input-grid">
-                        <div v-for="row in crispInputs" :key="row.key" class="input-item">
-                            <span class="input-label">{{ row.label }}</span>
-                            <span class="input-value mono tnum">{{ row.value }}<span class="input-unit">{{ row.unit }}</span></span>
-                        </div>
-                    </div>
-                    <button type="button" class="raw-toggle" @click="showRawJson = !showRawJson">
-                        <ChevronDown :size="14" :class="{ 'rotate-180': showRawJson }" />
-                        {{ showRawJson ? "Sembunyikan JSON mentah" : "Tampilkan JSON mentah" }}
-                    </button>
-                    <pre v-if="showRawJson" class="raw-json">{{ JSON.stringify(snapshot, null, 2) }}</pre>
-                </Card>
-
-                <Card variant="elevated" class="panel-card">
-                    <div class="panel-head">
-                        <h2 class="panel-title">Fuzzifikasi</h2>
-                        <p class="panel-desc">Derajat keanggotaan (μ) tiap himpunan fuzzy per kriteria.</p>
-                    </div>
-
-                    <div v-if="membershipRows.length" class="membership-list">
-                        <article v-for="row in membershipRows" :key="row.criterion" class="membership-block">
-                            <div class="membership-head">
-                                <h3 class="membership-title">{{ row.label }}</h3>
-                                <span v-if="row.dominant" class="dominant-chip">
-                                    Dominan: <strong>{{ labelize(row.dominant.name) }}</strong>
-                                    <span class="mono tnum">({{ formatAlpha(row.dominant.degree) }})</span>
-                                </span>
-                            </div>
-                            <div class="membership-bars">
-                                <div
-                                    v-for="entry in row.entries"
-                                    :key="`${row.criterion}-${entry.name}`"
-                                    class="membership-row"
-                                >
-                                    <span class="membership-set">{{ labelize(entry.name) }}</span>
-                                    <div class="membership-track">
-                                        <div
-                                            class="membership-fill"
-                                            :class="{ 'is-dominant': entry.name === row.dominant?.name }"
-                                            :style="{ width: alphaWidth(entry.degree) }"
-                                        />
-                                    </div>
-                                    <span class="membership-degree mono tnum">{{ formatAlpha(entry.degree) }}</span>
-                                </div>
-                            </div>
-                        </article>
-                    </div>
-                    <p v-else class="empty-note">Data fuzzifikasi tidak tersedia untuk kandidat ini.</p>
-                </Card>
-            </section>
-
-            <!-- Rules -->
-            <section class="rules-section reveal reveal-delay-3">
-                <div class="rules-head">
-                    <div>
-                        <h2 class="panel-title">Rule yang Dieksekusi</h2>
-                        <p class="panel-desc">
-                            Rule base snapshot batch ini. Hanya rule dengan derajat aktivasi α &gt; 0 yang
-                            berkontribusi ke skor Z.
-                        </p>
-                    </div>
-                    <div class="rules-toolbar">
-                        <div class="legend">
-                            <span class="legend-item"><span class="legend-dot legend-fired" /> Aktif (α &gt; 0)</span>
-                            <span class="legend-item"><span class="legend-dot legend-idle" /> Tidak aktif</span>
-                        </div>
-                        <Button size="sm" variant="ghost" @click="showAllRules = !showAllRules">
-                            {{ showAllRules ? "Hanya rule aktif" : `Tampilkan semua (${rulesCatalog.length})` }}
-                        </Button>
-                    </div>
-                </div>
-
-                <div class="rules-glossary">
-                    <Info :size="14" />
-                    <p>
-                        <strong>α (alpha)</strong> = tingkat kecocokan antecedent rule.
-                        <strong>z</strong> = nilai consequent hasil defuzzifikasi Tsukamoto per rule.
-                    </p>
-                </div>
-
-                <div v-if="visibleRules.length" class="rules-list">
-                    <article
-                        v-for="(rule, index) in visibleRules"
-                        :key="rule.code"
-                        class="rule-card"
-                        :class="{
-                            'is-fired': rule.fired,
-                            'is-expanded': expandedRule === rule.code,
-                        }"
-                        :style="{ '--stagger': `${Math.min(index, 8) * 45}ms` }"
-                    >
-                        <button type="button" class="rule-card-head" @click="toggleRule(rule.code)">
-                            <div class="rule-main">
-                                <span class="rule-code mono">{{ rule.code }}</span>
-                                <span class="tag capitalize" :class="consequentMeta(rule.consequent).tag">
-                                    {{ consequentMeta(rule.consequent).label }}
-                                </span>
-                                <span v-if="rule.fired" class="fired-badge">Aktif</span>
-                            </div>
-                            <div class="rule-metrics">
-                                <div class="metric">
-                                    <span class="metric-label">α</span>
-                                    <span class="metric-value mono tnum">{{ formatAlpha(rule.alpha) }}</span>
-                                    <div class="metric-bar">
-                                        <div class="metric-fill" :style="{ width: alphaWidth(rule.alpha) }" />
+                        <div v-if="result.input_snapshot.memberships && result.input_snapshot.memberships[key]" class="mt-4 pt-3 border-t border-[var(--border)]">
+                            <p class="text-[11px] text-[var(--muted)] mb-2 font-medium">HIMPUNAN FUZZY (μ)</p>
+                            <div class="space-y-1.5">
+                                <div v-for="(val, setKey) in result.input_snapshot.memberships[key]" :key="setKey" class="flex items-center justify-between text-xs">
+                                    <span class="capitalize text-[var(--ink)]">{{ setKey }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-full bg-[var(--primary)] rounded-full" :style="{ width: `${val * 100}%`, opacity: val > 0 ? 1 : 0.3 }"></div>
+                                        </div>
+                                        <span class="mono w-8 text-right font-medium" :class="val > 0 ? 'text-[var(--primary)]' : 'text-[var(--muted)]'">{{ Number(val).toFixed(2) }}</span>
                                     </div>
                                 </div>
-                                <div class="metric metric-z">
-                                    <span class="metric-label">z</span>
-                                    <span class="metric-value mono tnum">{{ formatZ(rule.z) }}</span>
-                                </div>
-                                <ChevronDown :size="16" class="rule-chevron" :class="{ 'rotate-180': expandedRule === rule.code }" />
-                            </div>
-                        </button>
-
-                        <div v-if="expandedRule === rule.code" class="rule-detail">
-                            <p v-if="rule.description" class="rule-description">{{ rule.description }}</p>
-                            <p v-else class="rule-description muted">Deskripsi rule belum tersedia.</p>
-
-                            <div class="antecedent-grid">
-                                <span
-                                    v-for="chip in antecedentChips(rule.antecedents)"
-                                    :key="`${rule.code}-${chip.criterion}`"
-                                    class="antecedent-chip"
-                                >
-                                    <span class="chip-criterion">{{ chip.criterionLabel }}</span>
-                                    <span class="chip-set">{{ chip.setLabel }}</span>
-                                </span>
                             </div>
                         </div>
-                    </article>
-                </div>
+                    </Card>
+                </template>
+            </div>
+            <Card v-else variant="outline" class="p-4 text-sm text-[var(--muted)]">
+                Data Input Snapshot tidak tersedia.
+            </Card>
+        </div>
 
-                <div v-else class="empty-state">
-                    Tidak ada rule yang cocok dengan filter saat ini.
-                </div>
-            </section>
+        <div class="window mt-8 mb-10">
+            <div class="window-bar flex items-center justify-between">
+                <span class="window-title text-xs">Evaluasi Rule Tsukamoto (Inference Engine)</span>
+                <Button size="sm" variant="ghost" @click="showAll = !showAll">
+                    {{ showAll ? "Sembunyikan α=0" : "Tampilkan semua rule" }}
+                </Button>
+            </div>
+            <div class="window-body p-0 overflow-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)]">
+                        <tr>
+                            <th class="px-4 py-3">Rule</th>
+                            <th class="px-4 py-3">Kesimpulan (Consequent)</th>
+                            <th class="px-4 py-3 text-right" title="Nilai minimum dari derajat keanggotaan variabel input pada rule ini.">Bobot α (Alpha)</th>
+                            <th class="px-4 py-3 text-right" title="Nilai keluaran tegas dari fungsi keanggotaan consequent.">Output z</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[var(--border)]">
+                        <tr v-for="e in (showAll ? evaluations : evaluations.filter((x) => Number(x.alpha) > 0))" :key="e.rule_code" class="hover:bg-gray-50/50">
+                            <td class="px-4 py-3 mono text-xs font-medium">{{ e.rule_code }}</td>
+                            <td class="px-4 py-3">
+                                <span class="tag capitalize" :class="{
+                                    'tag-success': e.consequent === 'sangat_layak',
+                                    'tag-primary': e.consequent === 'layak',
+                                    'tag-warning': e.consequent === 'dipertimbangkan',
+                                    'tag-danger': e.consequent === 'tidak_layak'
+                                }">
+                                    {{ e.consequent.replace('_', ' ') }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right mono tnum font-medium" :class="Number(e.alpha) > 0 ? 'text-[var(--ink)]' : 'text-[var(--muted)]'">{{ Number(e.alpha).toFixed(3) }}</td>
+                            <td class="px-4 py-3 text-right mono tnum font-medium" :class="Number(e.alpha) > 0 ? 'text-[var(--ink)]' : 'text-[var(--muted)]'">{{ Number(e.z).toFixed(2) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-[var(--surface)] p-3 px-4 border-t border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between">
+                <span><strong class="text-[var(--ink)]">Total Rule:</strong> {{ evaluations.length }}</span>
+                <span><strong class="text-[var(--ink)]">Rumus Defuzzifikasi:</strong> Z = (Σ α × z) / Σ α</span>
+            </div>
+        </div>
         </div>
     </AdminLayout>
 </template>

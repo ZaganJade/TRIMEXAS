@@ -18,19 +18,19 @@ final class EligibilityChecker
         $reasons = [];
 
         if ($input->statusMahasiswa !== 'aktif') {
-            $reasons[] = "Status bukan aktif (sekarang: {$input->statusMahasiswa})";
+            $reasons[] = "Gugur pra-syarat: Status kemahasiswaan saat ini tidak aktif (sekarang: {$input->statusMahasiswa})";
         }
 
         if ($input->semester > 6) {
-            $reasons[] = "Semester > 6";
+            $reasons[] = "Gugur pra-syarat: Semester pendaftar melebihi batas maksimal (Semester > 6)";
         }
 
         if ($input->ipk < 3.0) {
-            $reasons[] = "IPK < 3.0";
+            $reasons[] = "Gugur pra-syarat: IPK di bawah standar minimal yang ditetapkan (IPK < 3.00)";
         }
 
         if ($input->approvalStatus !== 'approved') {
-            $reasons[] = "Akun belum di-approve";
+            $reasons[] = "Gugur pra-syarat: Akun pendaftar belum disetujui (Approved) oleh Admin";
         }
 
         return new EligibilityResult(

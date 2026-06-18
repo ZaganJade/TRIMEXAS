@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('selection_batches', function (Blueprint $table) {
             $table->id();
             $table->string('label');
+            $table->string('periode', 16)->nullable();
+            $table->unsignedInteger('tahun_akademik')->nullable();
             $table->foreignId('triggered_by')->constrained('users')->restrictOnDelete();
             $table->string('status', 16)->default('queued'); // queued | running | completed | failed
             $table->unsignedInteger('total_candidates')->default(0);

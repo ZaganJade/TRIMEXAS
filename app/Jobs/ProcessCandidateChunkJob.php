@@ -97,8 +97,8 @@ class ProcessCandidateChunkJob implements ShouldQueue
                 }
 
                 $reasons = $finalEligible ? null : [
-                    sprintf('Skor Z=%.2f di bawah threshold_1=%.2f', $result->score, $threshold1),
-                    sprintf('Batas dipertimbangkan: threshold_1=%.2f, threshold_2=%.2f', $threshold1, $threshold2),
+                    sprintf('Tidak Memenuhi Kriteria Batas Nilai: Berdasarkan perhitungan skor akhir (%.2f), kandidat tidak mencapai standar kelayakan (Threshold Minimal: %.2f)', $result->score, $threshold1),
+                    'Alasan: Kandidat yang dinyatakan "Tidak Layak" otomatis gugur dan tidak masuk ke dalam perangkingan akhir.',
                 ];
 
                 $resultRows[] = [
