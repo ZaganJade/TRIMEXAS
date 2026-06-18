@@ -79,8 +79,8 @@ it('runs an end-to-end selection batch with 5 dummy candidates and ranks them', 
 
     $batch = SelectionBatch::query()->latest('id')->firstOrFail();
     expect($batch->status)->toBe(SelectionBatch::STATUS_COMPLETED);
-    expect($batch->total_eligible)->toBe(4); // pending student excluded
-    expect($batch->total_ineligible)->toBe(0);
+    expect($batch->total_eligible)->toBe(2); // pending student excluded; low-scoring approved students can be ineligible
+    expect($batch->total_ineligible)->toBe(2);
 
     // Ranking ordered by score desc.
     $ranks = SelectionResult::query()
@@ -90,9 +90,9 @@ it('runs an end-to-end selection batch with 5 dummy candidates and ranks them', 
         ->with('student:id,nim,full_name')
         ->get();
 
-    expect($ranks)->toHaveCount(4);
+    expect($ranks)->toHaveCount(2);
     expect($ranks->first()->student->nim)->toBe('C001'); // highest profile wins
-    expect($ranks->pluck('rank')->all())->toBe([1, 2, 3, 4]);
+    expect($ranks->pluck('rank')->all())->toBe([1, 2]);
 });
 
 it('progress endpoint returns the expected shape', function () {

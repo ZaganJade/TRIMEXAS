@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ThresholdController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\Mahasiswa\AnalysisController as MahasiswaAnalysisController;
 use App\Http\Controllers\Mahasiswa\AchievementController as MahasiswaAchievementController;
 use App\Http\Controllers\Mahasiswa\DashboardController as MahasiswaDashboardController;
 use App\Http\Controllers\Mahasiswa\ProfileController as MahasiswaProfileController;
@@ -118,6 +119,9 @@ Route::middleware(['auth', 'approved'])
         Route::put('/profile', [MahasiswaProfileController::class, 'update'])->name('profile.update');
 
         Route::get('/ranking', [MahasiswaRankingController::class, 'index'])->name('ranking.index');
+
+        Route::get('/analysis', [MahasiswaAnalysisController::class, 'index'])->name('analysis.index');
+        Route::get('/analysis/{batch}', [MahasiswaAnalysisController::class, 'show'])->name('analysis.show');
 
         Route::get('/achievements', [MahasiswaAchievementController::class, 'index'])->name('achievements.index');
         Route::post('/achievements', [MahasiswaAchievementController::class, 'store'])->name('achievements.store');

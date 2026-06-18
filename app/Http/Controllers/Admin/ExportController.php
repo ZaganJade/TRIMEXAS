@@ -7,6 +7,7 @@ use App\Models\SelectionBatch;
 use App\Models\SelectionResult;
 use App\Models\SelectionRuleEvaluation;
 use App\Models\Student;
+use App\Services\Selection\AuditReportBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use League\Csv\Writer;
@@ -79,7 +80,7 @@ class ExportController extends Controller
         return $pdf->download($filename);
     }
 
-    public function auditPdf(SelectionBatch $batch, Student $candidate): Response
+    public function auditPdf(SelectionBatch $batch, Student $candidate, AuditReportBuilder $reportBuilder): Response
     {
         activity('export')
             ->causedBy(request()->user())
@@ -99,11 +100,10 @@ class ExportController extends Controller
             ->orderBy('rule_code')
             ->get();
 
+        $report = $reportBuilder->build($batch, $candidate, $result, $evaluations);
+
         $pdf = Pdf::loadView('exports.audit', [
-            'batch' => $batch,
-            'candidate' => $candidate,
-            'result' => $result,
-            'evaluations' => $evaluations,
+            'report' => $report,
             'now' => now(),
         ]);
 

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Selection\NotifyStudentsOfBatchResultsAction;
 use App\Domain\Achievement\AchievementScorer;
 use App\Domain\Fuzzy\CandidateInput;
 use App\Domain\Fuzzy\FuzzyEngine;
@@ -184,6 +185,8 @@ class ProcessCandidateChunkJob implements ShouldQueue
                 if ($admin) {
                     $admin->notify(new BatchCompletedNotification($batch->refresh()));
                 }
+
+                app(NotifyStudentsOfBatchResultsAction::class)->execute($batch->refresh());
             }
         });
     }
