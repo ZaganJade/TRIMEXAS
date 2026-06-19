@@ -31,6 +31,32 @@ services:
       timeout: 5s
       retries: 3
 
+  queue-worker:
+    image: trimexas-app:main
+    container_name: trimexas-queue-worker
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--queue=seleksi,notifications", "--sleep=1", "--tries=3", "--timeout=300", "--memory=128"]
+    mem_limit: 192m
+    cpus: "0.35"
+    pids_limit: 96
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - trimexas-storage:/var/www/storage
+      - trimexas-cache:/var/www/bootstrap/cache
+    networks:
+      - trimexas
+      - global-db-net
+    depends_on:
+      app:
+        condition: service_healthy
+
 networks:
   trimexas:
     name: trimexas
