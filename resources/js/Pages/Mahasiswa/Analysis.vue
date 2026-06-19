@@ -1,9 +1,8 @@
 <script setup>
-import { Head, Link } from "@inertiajs/vue3";
+import { Head } from "@inertiajs/vue3";
 import { computed, ref } from "vue";
 import MahasiswaLayout from "@/Layouts/MahasiswaLayout.vue";
 import {
-    ArrowLeft,
     ChevronDown,
     FileSearch,
     LineChart,
@@ -114,6 +113,67 @@ const executedLabel = computed(() => {
     return new Date(raw).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
 });
 
+/* ===========================================================
+   Narasi penghitungan skor untuk pengguna.
+   Semua output diturunkan dari data asli (keanggotaan, aturan
+   yang cocok, posisi skor terhadap batas) agar penjelasan selalu
+   sesuai dengan skor yang ditampilkan. Ditulis dalam bahasa
+   deskriptif — tanpa istilah teknis sistem.
+   =========================================================== */
+
+// Tiga karakteristik profil yang paling memengaruhi skor Anda.
+const topTraits = computed(() =>
+    membershipRows.value
+        .filter((row) => row.dominant && Number(row.dominant.degree) > 0)
+        .map((row) => ({
+            label: row.label,
+            set: labelize(row.dominant.name),
+            percent: Math.round(Number(row.dominant.degree) * 100),
+        }))
+        .sort((a, b) => b.percent - a.percent)
+        .slice(0, 3),
+);
+
+// Bagaimana pertimbangan penilaian terbagi ke setiap keputusan
+// (Layak / Dipertimbangkan / Belum Layak), dinyatakan dalam persen.
+const evidenceShare = computed(() => {
+    const groups = {};
+    let total = 0;
+    for (const rule of firedRules.value) {
+        const key = rule.consequent || "tidak_layak";
+        groups[key] = (groups[key] || 0) + (Number(rule.alpha) || 0);
+        total += Number(rule.alpha) || 0;
+    }
+    if (total === 0) return [];
+    return Object.entries(groups)
+        .map(([consequent, alpha]) => ({
+            consequent,
+            label: (CONSEQUENT_META[consequent] ?? { label: labelize(consequent) }).label,
+            share: Math.round((alpha / total) * 100),
+        }))
+        .sort((a, b) => b.share - a.share);
+});
+
+// Letak skor dibanding batas penilaian, dalam kalimat yang mudah dipahami.
+const verdictMargin = computed(() => {
+    const s = scoreValue.value;
+    if (s === null) return null;
+    const t1 = threshold1.value;
+    const t2 = threshold2.value;
+    if (s >= t2) {
+        return { gap: Number(s - t2).toFixed(1), direction: "di atas", boundary: "batas kelayakan" };
+    }
+    if (s >= t1) {
+        return { gap: Number(s - t1).toFixed(1), direction: "di atas", boundary: "batas pertimbangan" };
+    }
+    return { gap: Number(t1 - s).toFixed(1), direction: "di bawah", boundary: "batas pertimbangan" };
+});
+
+// Ubah nilai 0–1 (tingkat kecocokan / bobot) menjadi persen yang ramah dibaca.
+function toPercent(value) {
+    return `${Math.round(Number(value) * 100)}%`;
+}
+
 function formatCurrency(value) {
     return new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -124,10 +184,6 @@ function formatCurrency(value) {
 
 function labelize(value) {
     return String(value ?? "").replaceAll("_", " ");
-}
-
-function formatAlpha(value) {
-    return Number(value).toFixed(3);
 }
 
 function alphaWidth(alpha) {
@@ -145,11 +201,7 @@ function toggleRule(code) {
     <MahasiswaLayout active="analysis">
         <div class="analysis-page space-y-7">
             <header class="reveal-stagger" style="--delay: 0ms">
-                <Link :href="route('mahasiswa.dashboard')" class="back-link">
-                    <ArrowLeft :size="16" />
-                    Kembali ke dashboard
-                </Link>
-                <span class="section-label mt-4 block">Hasil Analisa Seleksi</span>
+                <span class="section-label block">Hasil Analisa Seleksi</span>
                 <h1 class="display mt-3 text-[clamp(1.8rem,4vw,2.6rem)] text-[var(--ink)]">
                     <template v-if="hasAnalysis">Laporan analisa <span class="text-gradient">Anda</span></template>
                     <template v-else>Belum ada hasil analisa</template>
@@ -181,7 +233,7 @@ function toggleRule(code) {
                     <div>
                         <h2 class="display-md text-[1.1rem] text-[var(--ink)]">Tidak Memenuhi Syarat Seleksi</h2>
                         <p class="mt-1 text-[14px] text-[var(--muted)]">
-                            Data Anda tidak melanjutkan ke perhitungan fuzzy karena gagal prasyarat eligibility.
+                            Data Anda tidak lanjut ke penilaian karena belum memenuhi syarat awal.
                         </p>
                         <ul class="mt-3 space-y-2">
                             <li v-for="reason in result.ineligibility_reasons" :key="reason" class="flex gap-2 text-[13.5px] text-[var(--muted)]">
@@ -198,12 +250,12 @@ function toggleRule(code) {
                             <span class="window-dot" style="background:#fb7185"></span>
                             <span class="window-dot" style="background:#fbbf24"></span>
                             <span class="window-dot" style="background:#34d399"></span>
-                            <span class="window-title">skor-akhir — {{ batch.label }}</span>
+                            <span class="window-title">hasil-anda — {{ batch.label }}</span>
                         </div>
                         <div class="window-body !p-6">
                             <div class="flex flex-wrap items-start justify-between gap-4">
                                 <div>
-                                    <p class="mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Skor Akhir · Tsukamoto</p>
+                                    <p class="mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Skor Kelayakan Anda</p>
                                     <p class="score-display tnum mt-2">{{ scoreValue?.toFixed?.(2) ?? scoreValue }}</p>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
@@ -212,23 +264,50 @@ function toggleRule(code) {
                                 </div>
                             </div>
 
-                            <div class="threshold-track mt-6" role="img" :aria-label="`Skor ${scoreValue} pada skala 0-100`">
+                            <div class="threshold-track mt-6" role="img" :aria-label="`Skor ${scoreValue} dari 100`">
                                 <div class="threshold-zones">
-                                    <span class="zone zone-low">0 – {{ threshold1 }}</span>
-                                    <span class="zone zone-mid">{{ threshold1 }} – {{ threshold2 }}</span>
-                                    <span class="zone zone-high">{{ threshold2 }} – 100</span>
+                                    <span class="zone zone-low">Belum layak</span>
+                                    <span class="zone zone-mid">Dipertimbangkan</span>
+                                    <span class="zone zone-high">Layak</span>
                                 </div>
                                 <div class="threshold-bar">
-                                    <div class="threshold-marker t1" :style="{ left: `${threshold1}%` }"><span class="marker-label mono">T₁</span></div>
-                                    <div class="threshold-marker t2" :style="{ left: `${threshold2}%` }"><span class="marker-label mono">T₂</span></div>
                                     <div class="score-pin" :style="{ left: `${scorePosition}%` }"><span class="score-pin-dot" /></div>
                                 </div>
                             </div>
 
-                            <p class="mt-4 text-[13px] leading-relaxed text-[var(--muted)]">
-                                Skor dihitung dari agregasi rule fuzzy yang aktif (α &gt; 0).
-                                T₁ = {{ threshold1 }} (batas layak), T₂ = {{ threshold2 }} (batas dipertimbangkan).
-                            </p>
+                            <div class="score-narrative mt-5">
+                                <p class="sn-paragraph">
+                                    Skor kelayakan Anda <strong>{{ scoreValue?.toFixed?.(2) ?? scoreValue }}</strong> dari 100.
+                                    Dengan angka ini, profil Anda dinilai
+                                    <span class="tag capitalize" :class="categoryMeta.tag">{{ categoryMeta.label }}</span>
+                                    untuk menerima beasiswa pada batch {{ batch.label }}.
+                                </p>
+
+                                <p v-if="topTraits.length" class="sn-paragraph">
+                                    Beberapa hal yang paling menentukan skor ini adalah
+                                    <template v-for="(t, i) in topTraits" :key="t.label">
+                                        <strong>{{ t.label }}</strong> yang tergolong {{ t.set }}
+                                        <span class="text-[var(--muted)]">({{ t.percent }}%)</span><template v-if="i < topTraits.length - 1">, </template>
+                                    </template>.
+                                    Kombinasi ciri-ciri inilah yang menarik hasil ke keputusan akhir Anda.
+                                </p>
+
+                                <p v-if="evidenceShare.length" class="sn-paragraph">
+                                    Saat menilai, sistem menemukan <strong>{{ firedRules.length }} aturan</strong> penilaian yang cocok dengan profil Anda.
+                                    Sebagian besar pertimbangan mengarah ke
+                                    <strong>{{ evidenceShare[0].label }}</strong> (sekitar {{ evidenceShare[0].share }}%)
+                                    <template v-if="evidenceShare.length > 1">
+                                        , dengan sedikit pertimbangan lain ke {{ evidenceShare[1].label }} ({{ evidenceShare[1].share }}%)
+                                    </template>.
+                                </p>
+
+                                <p v-if="verdictMargin" class="sn-paragraph">
+                                    Skor Anda berada <strong>{{ verdictMargin.gap }} poin {{ verdictMargin.direction }} {{ verdictMargin.boundary }}</strong>.
+                                    <template v-if="categoryMeta.label === 'Layak'">Dengan selisih ini, hasil keputusan Anda tergolong kuat.</template>
+                                    <template v-else-if="categoryMeta.label === 'Dipertimbangkan'">Anda berada di zona yang masih dipertimbangkan, jadi hasil bisa berubah pada batch berikutnya.</template>
+                                    <template v-else>Profil Anda belum mencapai batas minimum pada batch ini.</template>
+                                </p>
+                            </div>
                         </div>
                     </article>
 
@@ -236,17 +315,17 @@ function toggleRule(code) {
                         <article class="bento">
                             <span class="bento-icon"><Zap :size="18" /></span>
                             <p class="display-md mt-4 text-[1.6rem] tnum">{{ firedRules.length }}</p>
-                            <p class="text-[13px] text-[var(--muted)]">Rule aktif</p>
+                            <p class="text-[13px] text-[var(--muted)]">Aturan yang berlaku</p>
                         </article>
                         <article class="bento">
                             <span class="bento-icon"><Target :size="18" /></span>
                             <p class="display-md mt-4 text-[1.6rem] tnum">{{ rulesCatalog.length }}</p>
-                            <p class="text-[13px] text-[var(--muted)]">Rule dalam snapshot</p>
+                            <p class="text-[13px] text-[var(--muted)]">Total aturan</p>
                         </article>
                         <article class="bento">
                             <span class="bento-icon"><Sparkles :size="18" /></span>
                             <p class="display-md mt-4 text-[1.05rem] capitalize">{{ categoryMeta.label }}</p>
-                            <p class="text-[13px] text-[var(--muted)]">Kategori output</p>
+                            <p class="text-[13px] text-[var(--muted)]">Status Anda</p>
                         </article>
                     </div>
                 </section>
@@ -257,11 +336,11 @@ function toggleRule(code) {
                             <span class="window-dot" style="background:#fb7185"></span>
                             <span class="window-dot" style="background:#fbbf24"></span>
                             <span class="window-dot" style="background:#34d399"></span>
-                            <span class="window-title">input-crisp.json</span>
+                            <span class="window-title">data-anda</span>
                         </div>
                         <div class="window-body !p-5">
                             <h2 class="display-md text-[1rem] text-[var(--ink)]">Data Input Anda</h2>
-                            <p class="mt-1 text-[13px] text-[var(--muted)]">Nilai mentah yang dipakai dalam perhitungan fuzzy.</p>
+                            <p class="mt-1 text-[13px] text-[var(--muted)]">Data profil dan prestasi yang dinilai sistem.</p>
                             <div class="mt-4 grid gap-3 sm:grid-cols-2">
                                 <div v-for="row in crispInputs" :key="row.key" class="input-chip">
                                     <span class="input-label">{{ row.label }}</span>
@@ -276,19 +355,19 @@ function toggleRule(code) {
                             <span class="window-dot" style="background:#fb7185"></span>
                             <span class="window-dot" style="background:#fbbf24"></span>
                             <span class="window-dot" style="background:#34d399"></span>
-                            <span class="window-title">fuzzifikasi.json</span>
+                            <span class="window-title">profil-penilaian</span>
                         </div>
                         <div class="window-body !p-5">
-                            <h2 class="display-md text-[1rem] text-[var(--ink)]">Fuzzifikasi</h2>
-                            <p class="mt-1 text-[13px] text-[var(--muted)]">Derajat keanggotaan (μ) tiap himpunan fuzzy.</p>
+                            <h2 class="display-md text-[1rem] text-[var(--ink)]">Profil Anda dalam Penilaian</h2>
+                            <p class="mt-1 text-[13px] text-[var(--muted)]">Seberapa cocok setiap nilai Anda dengan kategori tertentu.</p>
 
                             <div v-if="membershipRows.length" class="mt-4 space-y-4">
                                 <div v-for="row in membershipRows" :key="row.criterion" class="membership-block">
                                     <div class="flex flex-wrap items-center justify-between gap-2">
                                         <h3 class="text-[13px] font-medium text-[var(--ink)]">{{ row.label }}</h3>
                                         <span v-if="row.dominant" class="text-[11px] text-[var(--muted)]">
-                                            Dominan: <strong>{{ labelize(row.dominant.name) }}</strong>
-                                            <span class="mono">({{ formatAlpha(row.dominant.degree) }})</span>
+                                            Paling cocok: <strong>{{ labelize(row.dominant.name) }}</strong>
+                                            <span class="mono">({{ toPercent(row.dominant.degree) }})</span>
                                         </span>
                                     </div>
                                     <div class="mt-2 space-y-2">
@@ -301,12 +380,12 @@ function toggleRule(code) {
                                                     :style="{ width: alphaWidth(entry.degree) }"
                                                 />
                                             </div>
-                                            <span class="membership-degree mono tnum">{{ formatAlpha(entry.degree) }}</span>
+                                            <span class="membership-degree mono tnum">{{ toPercent(entry.degree) }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <p v-else class="mt-4 text-[13px] text-[var(--muted)]">Data fuzzifikasi tidak tersedia.</p>
+                            <p v-else class="mt-4 text-[13px] text-[var(--muted)]">Detail profil penilaian belum tersedia.</p>
                         </div>
                     </article>
                 </section>
@@ -316,20 +395,20 @@ function toggleRule(code) {
                         <span class="window-dot" style="background:#fb7185"></span>
                         <span class="window-dot" style="background:#fbbf24"></span>
                         <span class="window-dot" style="background:#34d399"></span>
-                        <span class="window-title">rule-evaluations.json</span>
+                        <span class="window-title">alasan-penilaian</span>
                     </div>
                     <div class="window-body !p-5">
                         <div class="flex flex-wrap items-end justify-between gap-3">
                             <div>
-                                <h2 class="display-md text-[1rem] text-[var(--ink)]">Rule yang Dipakai</h2>
+                                <h2 class="display-md text-[1rem] text-[var(--ink)]">Dasar Penilaian Anda</h2>
                                 <p class="mt-1 text-[13px] text-[var(--muted)]">
-                                    Menampilkan {{ visibleRules.length }} rule
-                                    {{ showAllRules ? "dari snapshot batch" : "yang aktif (α > 0)" }}.
+                                    Menampilkan {{ visibleRules.length }} aturan penilaian
+                                    {{ showAllRules ? "yang tersedia" : "yang berlaku untuk Anda" }}.
                                 </p>
                             </div>
                             <button type="button" class="toggle-btn" @click="showAllRules = !showAllRules">
                                 <ChevronDown :size="14" :class="{ 'rotate-180': showAllRules }" />
-                                {{ showAllRules ? "Hanya rule aktif" : "Tampilkan semua rule" }}
+                                {{ showAllRules ? "Hanya yang berlaku" : "Tampilkan semua aturan" }}
                             </button>
                         </div>
 
@@ -344,25 +423,24 @@ function toggleRule(code) {
                                     <div class="min-w-0 text-left">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <span class="mono text-[12px] font-medium text-[var(--ink)]">{{ rule.code }}</span>
-                                            <span v-if="rule.fired" class="tag tag-success">Aktif</span>
-                                            <span v-else class="tag">Tidak aktif</span>
+                                            <span v-if="rule.fired" class="tag tag-success">Berlaku</span>
+                                            <span v-else class="tag">Tidak berlaku</span>
                                         </div>
                                         <p v-if="rule.description" class="mt-1 text-[13px] text-[var(--muted)]">{{ rule.description }}</p>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <span v-if="rule.fired" class="mono text-[12px] tnum text-[var(--primary)]">α {{ formatAlpha(rule.alpha) }}</span>
+                                        <span v-if="rule.fired" class="mono text-[12px] tnum text-[var(--primary)]">bobot {{ toPercent(rule.alpha) }}</span>
                                         <ChevronDown :size="16" class="text-[var(--muted)] transition-transform" :class="{ 'rotate-180': expandedRule === rule.code }" />
                                     </div>
                                 </button>
                                 <div v-if="expandedRule === rule.code" class="rule-body">
                                     <p class="text-[12px] text-[var(--muted)]">
-                                        Konsekuen: <strong class="text-[var(--foreground)]">{{ labelize(rule.consequent) }}</strong>
-                                        <span v-if="rule.fired"> · Z = <span class="mono">{{ Number(rule.z).toFixed(2) }}</span></span>
+                                        Aturan ini menyimpulkan bahwa Anda <strong class="text-[var(--foreground)] capitalize">{{ labelize(rule.consequent) }}</strong><span v-if="rule.fired"> dan menambah skor sekitar <span class="mono">{{ Number(rule.z).toFixed(0) }}</span>.</span>
                                     </p>
                                 </div>
                             </article>
                         </div>
-                        <p v-else class="mt-4 text-[13px] text-[var(--muted)]">Tidak ada rule yang aktif untuk profil Anda.</p>
+                        <p v-else class="mt-4 text-[13px] text-[var(--muted)]">Belum ada aturan penilaian yang cocok dengan profil Anda.</p>
                     </div>
                 </section>
 
@@ -372,9 +450,11 @@ function toggleRule(code) {
                         <div>
                             <h2 class="display-md text-[1.05rem] text-[var(--ink)]">Bagaimana hasil ini diperoleh?</h2>
                             <p class="mt-1.5 text-[14px] leading-relaxed text-[var(--muted)]">
-                                Sistem mengambil profil dan prestasi Anda, melakukan fuzzifikasi tiap kriteria,
-                                mengevaluasi rule fuzzy dari snapshot batch, lalu mengagregasi skor dengan metode Tsukamoto.
-                                Kategori akhir ditentukan oleh perbandingan skor dengan threshold T₁ dan T₂ batch ini.
+                                Sistem memeriksa profil dan prestasi Anda, lalu mencocokkannya dengan lima kriteria penilaian:
+                                IPK, penghasilan keluarga, prestasi akademis, prestasi non-akademis, dan tanggungan keluarga.
+                                Setiap kriteria dilihat seberapa cocok dengan kategori tertentu, kemudian seluruh pertimbangan
+                                digabung menjadi satu skor kelayakan. Status akhir Anda — Layak, Dipertimbangkan, atau Belum Layak —
+                                ditentukan dari letak skor tersebut pada batas penilaian batch ini.
                             </p>
                         </div>
                     </div>
@@ -387,19 +467,6 @@ function toggleRule(code) {
 <style scoped>
 .analysis-page {
     --analysis-border: color-mix(in oklab, var(--border) 88%, transparent);
-}
-
-.back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.82rem;
-    color: var(--muted);
-    transition: color 0.2s ease;
-}
-
-.back-link:hover {
-    color: var(--primary);
 }
 
 .ineligible-banner {
@@ -471,14 +538,7 @@ function toggleRule(code) {
 }
 
 .threshold-marker {
-    position: absolute;
-    top: -0.35rem;
-    transform: translateX(-50%);
-}
-
-.marker-label {
-    font-size: 0.62rem;
-    color: var(--muted);
+    display: none;
 }
 
 .score-pin {
@@ -495,6 +555,33 @@ function toggleRule(code) {
     border: 2px solid var(--surface);
     background: var(--primary);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 25%, transparent);
+}
+
+/* Narasi penghitungan skor (bahasa deskriptif) */
+.score-narrative {
+    margin-top: 1.25rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--analysis-border);
+}
+
+.sn-paragraph {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--muted);
+}
+
+.sn-paragraph + .sn-paragraph {
+    margin-top: 0.6rem;
+}
+
+.sn-paragraph strong {
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+.sn-paragraph .tag {
+    margin: 0 0.1rem;
+    vertical-align: middle;
 }
 
 .input-chip {
@@ -591,7 +678,7 @@ function toggleRule(code) {
     padding: 0 1rem 0.85rem;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1024px) {
     .verdict-grid {
         grid-template-columns: 1fr;
     }

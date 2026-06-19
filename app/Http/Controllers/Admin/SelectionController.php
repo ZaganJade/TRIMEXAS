@@ -18,17 +18,10 @@ class SelectionController extends Controller
 {
     public function create(Request $request): Response
     {
+        // Batch history search & filter happen entirely client-side on the
+        // Run page, so we ship the full (bounded) list up-front.
         $batches = SelectionBatch::query()
             ->select(['id', 'label', 'periode', 'tahun_akademik', 'status', 'created_at', 'total_candidates', 'total_eligible'])
-            ->when($request->input('q'), function ($q, $term) {
-                $like = '%' . $term . '%';
-                $q->where(function ($w) use ($like) {
-                    $w->where('label', 'ilike', $like)
-                        ->orWhere('periode', 'ilike', $like)
-                        ->orWhere('tahun_akademik', 'ilike', $like);
-                });
-            })
-            ->when($request->input('batch_id'), fn ($q, $id) => $q->where('id', $id))
             ->latest()
             ->limit(50)
             ->get()

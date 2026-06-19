@@ -758,8 +758,8 @@ onBeforeUnmount(() => {
                             <SunMedium v-if="isDark" :size="15" class="theme-icon is-dark" />
                             <MoonStar v-else :size="15" class="theme-icon" />
                         </button>
-                        <Link :href="route('login')" class="btn-ghost hidden text-[0.85rem] sm:inline-flex">Masuk</Link>
-                        <Link :href="route('register')" class="btn-primary text-[0.85rem]">Daftar</Link>
+                        <Link :href="route('login')" class="btn-ghost text-[0.85rem]">Masuk</Link>
+                        <Link :href="route('register')" class="btn-primary !hidden text-[0.85rem] sm:!inline-flex">Daftar</Link>
                     </div>
                 </nav>
             </div>

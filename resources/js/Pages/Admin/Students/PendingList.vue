@@ -76,7 +76,7 @@ function submitReject() {
                 </div>
                 <span class="window-title">pending_verifications.db</span>
             </div>
-            <div class="window-body overflow-x-auto">
+            <div class="window-body table-scroll">
                 <table class="w-full text-sm">
                     <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
                         <tr>

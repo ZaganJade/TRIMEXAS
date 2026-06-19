@@ -169,6 +169,71 @@
 }
 
 /* =====================================================
+   Global responsive safety net (mobile-first guards)
+   Cegah overflow horizontal & elemen yang "keluar border".
+   `overflow-x: clip` dipilih (bukan hidden) agar sticky header
+   tetap berfungsi — clip tidak membuat scroll-container baru.
+   ===================================================== */
+html,
+body {
+    overflow-x: clip;
+}
+
+/* Cadangkan gutter scrollbar agar muncul/hilangnya scrollbar
+   (mis. saat overlay/dropdown Radix mengunci scroll body) tidak
+   memicu reflow horizontal mendadak. */
+html {
+    scrollbar-gutter: stable;
+}
+
+/* Media & embed tidak boleh melebihi container-nya */
+img,
+svg,
+video,
+canvas,
+table {
+    max-width: 100%;
+}
+
+/* Header / toolbar halaman: judul + aksi, membungkus rapi di mobile.
+   Mengganti pola `flex justify-between` yang tidak wrap. */
+.page-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+    .page-toolbar > .page-toolbar-action {
+        width: 100%;
+    }
+}
+
+/* Pembungkus tabel — scroll horizontal halus, kolom tetap utuh
+   (tidak gepeng). Pakai di setiap <table> lebar. */
+.table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll > table {
+    min-width: 640px;
+}
+
+/* iOS men-zoom otomatis saat fokus ke input dengan font-size < 16px.
+   Paksa 16px hanya di mobile (desktop tetap pakai text-sm). */
+@media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* =====================================================
    Typography utilities — editorial sophistication
    ===================================================== */
 .display {
@@ -880,6 +945,11 @@
     .bento.col-6,
     .bento.col-7,
     .bento.col-8 { grid-column: span 1; }
+
+    /* Padding lebih ramping di mobile agar konten (chart, form) muat */
+    .bento {
+        padding: 1.15rem;
+    }
 }
 
 /* =====================================================

@@ -51,13 +51,13 @@ function save(_criterion, set) {
                 <span class="window-dot" />
                 <span class="window-dot" />
                 <span class="window-dot" />
-                <span class="window-title">Konfigurasi Kriteria Fuzzy</span>
+                <span class="window-title">Pengaturan Kriteria Penilaian</span>
             </div>
             <div class="window-body space-y-2">
                 <p class="text-sm text-[var(--muted)]">
-                    Parameter himpunan (a, b, c) editable per kriteria. Validasi monotonik
+                    Atur batas nilai (a, b, c) untuk tiap kategori pada setiap kriteria. Nilai harus berurutan
                     <code class="mono rounded bg-[var(--primary-soft)] px-1 text-xs">a &lt; b &lt; c</code>
-                    diberlakukan oleh server. Snapshot diambil saat batch dijalankan.
+                    — server akan memeriksanya. Pengaturan akan dikunci saat putaran seleksi dijalankan.
                 </p>
 
                 <p
@@ -76,7 +76,7 @@ function save(_criterion, set) {
                     <h2 class="display-md">
                         {{ c.name }}
                         <span class="ml-2 text-sm font-normal text-[var(--muted)]">
-                            ({{ c.unit }} · domain {{ c.domain_min }}–{{ c.domain_max }})
+                            ({{ c.unit }} · rentang {{ c.domain_min }}–{{ c.domain_max }})
                         </span>
                     </h2>
                 </div>

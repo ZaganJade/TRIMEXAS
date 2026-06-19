@@ -1,7 +1,7 @@
 import "../css/app.css";
 
 import { createApp, h } from "vue";
-import { createInertiaApp } from "@inertiajs/vue3";
+import { createInertiaApp, router } from "@inertiajs/vue3";
 import { ZiggyVue } from "ziggy-js";
 
 const appName = import.meta.env.VITE_APP_NAME || "Trimexas";
@@ -22,6 +22,21 @@ createInertiaApp({
         color: "#3189C6",
         showSpinner: false,
     },
+});
+
+/* Layout admin/mahasiswa membatasi tinggi ke viewport sehingga yang
+   di-scroll adalah `.app-content`, bukan window. Karena itu reset
+   scroll default Inertia (yang menarget window) tidak menjangkau
+   kontainer tersebut — kita reset manual setiap navigasi agar halaman
+   baru selalu dimulai dari atas. */
+router.on("navigate", () => {
+    requestAnimationFrame(() => {
+        document.querySelectorAll(".app-content, [data-scroll-reset]").forEach((el) => {
+            if (el.scrollTop > 0 || el.scrollLeft > 0) {
+                el.scrollTo({ top: 0, left: 0 });
+            }
+        });
+    });
 });
 
 // Theme bootstrap (no flash) — must run before paint.

@@ -617,6 +617,14 @@ onBeforeUnmount(() => {
     margin-left: 260px;
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     min-width: 0;
+    /* Batasi tinggi ke viewport agar halaman TIDAK pernah scroll di
+       level body/window. Body yang tidak pernah scroll membuat
+       `body { overflow: hidden }` dari Radix (dropdown/dialog) menjadi
+       no-op — sehingga sticky header tidak kehilangan anchor-nya dan
+       tidak terjadi reflow scrollbar. */
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
 }
 
 .app-main.main-sidebar-collapsed {
@@ -640,6 +648,7 @@ onBeforeUnmount(() => {
     position: sticky;
     top: 0;
     z-index: 30;
+    flex: 0 0 auto;
 }
 
 .mobile-menu-btn {
@@ -683,6 +692,13 @@ onBeforeUnmount(() => {
     width: 100%;
     max-width: 1640px;
     margin: 0 auto;
+    /* min-height:0 wajib agar flex-child ini bisa di-scroll di dalam
+       .app-main yang tingginya dibatasi 100vh. scrollbar-gutter
+       stable both-edges mencadangkan ruang scrollbar di kiri-kanan
+       supaya konten yang di-center (margin:auto) tidak melompat saat
+       overlay/dropdown dibuka. */
+    min-height: 0;
+    scrollbar-gutter: stable both-edges;
 }
 
 @media (max-width: 768px) {

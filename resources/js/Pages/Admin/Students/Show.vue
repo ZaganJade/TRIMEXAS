@@ -57,7 +57,7 @@ function unverify(achievementId) {
                 <ArrowLeft :size="14" />
                 Kembali ke daftar
             </Link>
-            <div class="mt-4 flex items-baseline justify-between">
+            <div class="mt-4 flex flex-wrap items-baseline justify-between gap-3">
                 <div>
                     <h1 class="display text-[clamp(2rem,4vw,2.5rem)] text-[var(--ink)]">
                         {{ student.full_name }}
@@ -213,7 +213,7 @@ function unverify(achievementId) {
                     {{ student.agregat_non_akademis }}
                 </p>
             </div>
-            <div class="overflow-x-auto">
+            <div class="table-scroll">
                 <table class="w-full text-sm">
                     <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
                         <tr>

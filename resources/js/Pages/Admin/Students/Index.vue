@@ -23,7 +23,7 @@ function doSearch() {
 
     <AdminLayout active="students">
         <header class="reveal-stagger" style="--delay: 0ms">
-            <div class="flex items-baseline justify-between">
+            <div class="flex flex-wrap items-baseline justify-between gap-3">
                 <div>
                     <span class="section-label">Manajemen Mahasiswa</span>
                     <h1 class="display mt-4 text-[clamp(2rem,4vw,2.5rem)] text-[var(--ink)]">
@@ -67,7 +67,7 @@ function doSearch() {
                 </div>
                 <span class="window-title">students.db</span>
             </div>
-            <div class="window-body overflow-x-auto">
+            <div class="window-body table-scroll">
                 <table class="w-full text-sm">
                     <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
                         <tr>

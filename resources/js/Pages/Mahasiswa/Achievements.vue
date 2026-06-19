@@ -243,7 +243,7 @@ const slotsLeft = computed(() => Math.max(0, 5 - usedSlots.value));
                         <span class="window-dot" style="background:#34d399"></span>
                         <span class="window-title">daftar-prestasi.json</span>
                     </div>
-                    <div class="window-body !p-0 overflow-x-auto">
+                    <div class="window-body !p-0 table-scroll">
                         <table class="w-full text-[14px]">
                             <thead class="border-b border-[var(--border)] bg-[var(--surface)]">
                                 <tr class="text-left">
