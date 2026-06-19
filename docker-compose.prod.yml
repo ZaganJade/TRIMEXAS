@@ -35,7 +35,7 @@ services:
     image: trimexas-app:main
     container_name: trimexas-queue-worker
     restart: unless-stopped
-    command: ["php", "artisan", "queue:work", "--queue=seleksi,notifications", "--sleep=1", "--tries=3", "--timeout=300", "--memory=128"]
+    command: ["php", "artisan", "queue:work", "--queue=seleksi,notifications", "--sleep=0.1", "--tries=3", "--timeout=300", "--memory=128"]
     mem_limit: 192m
     cpus: "0.35"
     pids_limit: 96
