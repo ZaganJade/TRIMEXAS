@@ -12,29 +12,27 @@ class SelectionHistoryController extends Controller
 {
     public function index(Request $request): Response
     {
-        $status = $request->query('status');
-
+        // The history view uses a client-side data table (search, filter,
+        // sort, pagination all happen in the browser), so we ship the full
+        // batch list up-front. Batch rounds are a small, bounded set.
         $batches = SelectionBatch::query()
-            ->when($status, fn ($q) => $q->where('status', $status))
             ->with('triggeredBy:id,name')
             ->latest()
-            ->paginate(25)
-            ->withQueryString();
-
-        $batches->getCollection()->transform(fn (SelectionBatch $b) => [
-            'id' => $b->id,
-            'label' => $b->label,
-            'status' => $b->status,
-            'triggered_by' => $b->triggeredBy?->name,
-            'created_at' => $b->created_at?->toIso8601String(),
-            'completed_at' => $b->completed_at?->toIso8601String(),
-            'total_candidates' => $b->total_candidates,
-            'total_eligible' => $b->total_eligible,
-        ]);
+            ->get()
+            ->map(fn (SelectionBatch $b) => [
+                'id' => $b->id,
+                'label' => $b->label,
+                'status' => $b->status,
+                'triggered_by' => $b->triggeredBy?->name,
+                'created_at' => $b->created_at?->toIso8601String(),
+                'completed_at' => $b->completed_at?->toIso8601String(),
+                'total_candidates' => $b->total_candidates,
+                'total_eligible' => $b->total_eligible,
+            ]);
 
         return Inertia::render('Admin/History', [
             'batches' => $batches,
-            'status' => $status,
+            'status' => $request->query('status'),
         ]);
     }
 }

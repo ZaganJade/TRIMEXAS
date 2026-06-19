@@ -27,7 +27,7 @@ defineEmits(["update:open"]);
             />
             <DialogContent
                 :class="cn(
-                    'fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2',
+                    'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[90dvh] overflow-y-auto -translate-x-1/2 -translate-y-1/2',
                     'rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)]',
                     'shadow-[var(--shadow-card)] p-6',
                     'data-[state=open]:animate-[rise-in_240ms_var(--ease-soft)]'

@@ -1,6 +1,6 @@
 <script setup>
-import { Head, Link, router, useForm } from "@inertiajs/vue3";
-import { computed, ref, watch } from "vue";
+import { Head, Link, useForm } from "@inertiajs/vue3";
+import { computed, ref } from "vue";
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 import Button from "@/components/ui/Button.vue";
 import Card from "@/components/ui/Card.vue";
@@ -29,21 +29,27 @@ function submit() {
     form.post(route("admin.selection.run"));
 }
 
-function applyFilters() {
-    router.get(
-        route("admin.selection.run"),
-        { q: q.value || undefined, batch_id: batchId.value || undefined },
-        { preserveState: true, replace: true }
-    );
-}
+// Batch history filtering is fully client-side — typing in the search box
+// never hits the server, so the input keeps focus on every keystroke.
+const filteredBatches = computed(() => {
+    const term = q.value.trim().toLowerCase();
+    return props.batches.filter((b) => {
+        if (batchId.value !== null && Number(b.id) !== Number(batchId.value)) {
+            return false;
+        }
+        if (!term) return true;
+        return (
+            String(b.label ?? "").toLowerCase().includes(term) ||
+            String(b.periode ?? "").toLowerCase().includes(term) ||
+            String(b.tahun_akademik ?? "").toLowerCase().includes(term)
+        );
+    });
+});
 
 function clearFilters() {
     q.value = "";
     batchId.value = null;
-    applyFilters();
 }
-
-watch([q], () => applyFilters());
 
 const batchOptions = computed(() => [
     { value: null, label: "Semua batch" },
@@ -71,8 +77,8 @@ function statusVariant(status) {
             <header class="page-header">
                 <h1 class="page-title">Jalankan Seleksi</h1>
                 <p class="page-subtitle">
-                    Snapshot parameter himpunan fuzzy, rules, dan thresholds akan dibekukan saat batch dimulai
-                    sehingga ranking historis tidak terpengaruh perubahan parameter.
+                    Pengaturan penilaian — kriteria, aturan, dan batas — akan dikunci saat putaran dimulai,
+                    sehingga hasil riwayat tidak berubah walau pengaturan diperbarui kemudian.
                 </p>
             </header>
 
@@ -84,12 +90,12 @@ function statusVariant(status) {
                             <Users :size="18" />
                         </span>
                         <div>
-                            <p class="stat-label">Kandidat ter-approve</p>
+                            <p class="stat-label">Kandidat siap dinilai</p>
                             <p class="stat-value tnum">{{ candidateCount }}</p>
                         </div>
                     </div>
                     <p class="stat-hint">
-                        Mahasiswa approved yang akan diproses saat batch baru dijalankan.
+                        Mahasiswa yang sudah disetujui dan akan dinilai pada putaran berikutnya.
                     </p>
                 </Card>
                 <Card variant="elevated" class="stat-card">
@@ -148,7 +154,7 @@ function statusVariant(status) {
                     <div class="history-header">
                         <div class="flex items-center justify-between">
                             <span class="history-title">Riwayat batch</span>
-                            <span class="history-count">{{ batches.length }} entri</span>
+                            <span class="history-count">{{ filteredBatches.length }} entri</span>
                         </div>
                         <div class="history-filters">
                             <div class="filter-search">
@@ -163,7 +169,7 @@ function statusVariant(status) {
                                 <Select
                                     id="batch-pick"
                                     :model-value="batchId"
-                                    @update:model-value="(v) => { batchId = v ? Number(v) : null; applyFilters(); }"
+                                    @update:model-value="(v) => { batchId = v ? Number(v) : null; }"
                                     :options="batchOptions"
                                 />
                             </div>
@@ -174,7 +180,7 @@ function statusVariant(status) {
                         </div>
                     </div>
                     <div class="history-body">
-                        <table v-if="batches.length" class="history-table">
+                        <table v-if="filteredBatches.length" class="history-table">
                             <thead>
                                 <tr>
                                     <th>Batch</th>
@@ -184,7 +190,7 @@ function statusVariant(status) {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="b in batches" :key="b.id">
+                                <tr v-for="b in filteredBatches" :key="b.id">
                                     <td>
                                         <div class="batch-info">
                                             <span class="batch-name">{{ b.label }}</span>
@@ -210,7 +216,7 @@ function statusVariant(status) {
                             </tbody>
                         </table>
                         <div v-else class="empty-state">
-                            Tidak ada batch yang cocok dengan filter.
+                            Tidak ada batch yang cocok dengan pencarian Anda.
                         </div>
                     </div>
                 </Card>
@@ -221,13 +227,13 @@ function statusVariant(status) {
                 <div class="flex items-start gap-3">
                     <Info :size="16" class="mt-0.5 shrink-0 text-[var(--primary)]" />
                     <div class="info-content">
-                        <p class="info-title">Alur seleksi (Tsukamoto)</p>
+                        <p class="info-title">Cara Kerja Penilaian</p>
                         <ol class="info-steps">
-                            <li>4 gate: <span class="mono">status=aktif</span>, <span class="mono">semester≤6</span>, <span class="mono">IPK≥3.00</span>, <span class="mono">akun=approved</span></li>
-                            <li>Fuzzifier: 5 kriteria × 3 himpunan fuzzy → nilai μ</li>
-                            <li>Inference: 75 rule Tsukamoto, hitung α (min) dan z (monotonik per consequent)</li>
-                            <li>Defuzzifier: weighted average → skor Z (0..100)</li>
-                            <li>Kategori: <span class="mono">Z &lt; threshold_1</span> = tidak_layak, <span class="mono">≤ threshold_2</span> = dipertimbangkan, else = layak</li>
+                            <li>Empat syarat awal: mahasiswa aktif, semester ≤ 6, IPK ≥ 3,00, dan akun sudah disetujui.</li>
+                            <li>Setiap kriteria dinilai seberapa cocok dengan kategori tertentu.</li>
+                            <li>Aturan penilaian dicocokkan dengan profil kandidat untuk menentukan keputusan.</li>
+                            <li>Seluruh pertimbangan digabung menjadi satu skor kelayakan (0–100).</li>
+                            <li>Skor menentukan status akhir: belum layak, dipertimbangkan, atau layak.</li>
                         </ol>
                     </div>
                 </div>

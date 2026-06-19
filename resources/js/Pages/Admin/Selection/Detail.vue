@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card.vue";
 import Input from "@/components/ui/Input.vue";
 import Label from "@/components/ui/Label.vue";
 import Select from "@/components/ui/Select.vue";
+import LazySkeleton from "@/components/ui/LazySkeleton.vue";
 import { Search, CheckCircle2, XCircle, ListChecks, Calculator } from "@lucide/vue";
 
 const props = defineProps({
@@ -238,7 +239,21 @@ onBeforeUnmount(stopPoll);
                                     </Link>
                                 </td>
                             </tr>
-                            <tr v-if="!filteredResults.length">
+                            <tr v-if="isRunning && !filteredResults.length">
+                                <td colspan="6" class="p-0">
+                                    <LazySkeleton
+                                        title="Menyiapkan ranking…"
+                                        subtitle="Worker sedang menghitung skor setiap kandidat. Daftar peringkat akan muncul otomatis saat selesai."
+                                        :running="status === 'running'"
+                                        :processed="processed"
+                                        :total="total"
+                                        :rows="6"
+                                        :columns="6"
+                                        icon="cpu"
+                                    />
+                                </td>
+                            </tr>
+                            <tr v-else-if="!filteredResults.length">
                                 <td colspan="6" class="empty-state">Belum ada hasil ranking.</td>
                             </tr>
                         </tbody>
@@ -279,7 +294,21 @@ onBeforeUnmount(stopPoll);
                                     </ul>
                                 </td>
                             </tr>
-                            <tr v-if="!filteredIneligible.length">
+                            <tr v-if="isRunning && !filteredIneligible.length">
+                                <td colspan="3" class="p-0">
+                                    <LazySkeleton
+                                        title="Menunggu hasil verifikasi…"
+                                        subtitle="Daftar kandidat yang belum memenuhi syarat akan muncul setelah worker selesai."
+                                        :running="status === 'running'"
+                                        :processed="processed"
+                                        :total="total"
+                                        :rows="5"
+                                        :columns="3"
+                                        icon="sparkles"
+                                    />
+                                </td>
+                            </tr>
+                            <tr v-else-if="!filteredIneligible.length">
                                 <td colspan="3" class="empty-state">Tidak ada kandidat ineligible.</td>
                             </tr>
                         </tbody>

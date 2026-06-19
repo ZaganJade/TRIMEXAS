@@ -69,7 +69,7 @@ function applyFilters() {
         </div>
 
         <div class="window mt-6">
-            <div class="window-body p-0 overflow-auto">
+            <div class="window-body p-0 table-scroll">
                 <table class="w-full text-sm">
                     <thead class="text-left text-xs uppercase tracking-wide text-[var(--muted)] bg-[var(--surface)]">
                         <tr>

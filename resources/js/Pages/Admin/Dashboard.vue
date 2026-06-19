@@ -94,7 +94,7 @@ const actions = computed(() => [
         body: "Kelola daftar, tambah, dan ubah profil mahasiswa",
         icon: Users,
         href: route("admin.students.index"),
-        color: "blue",
+        color: "primary",
         badge: null,
     },
     {
@@ -102,20 +102,20 @@ const actions = computed(() => [
         body: "Setujui atau tolak pendaftar yang masih menunggu",
         icon: UserPlus,
         href: route("admin.students.pending"),
-        color: "amber",
+        color: "warning",
         badge: page.props.stats?.pending || null,
     },
     {
-        title: "Kriteria Fuzzy",
-        body: "Atur himpunan dan ambang penilaian Tsukamoto",
+        title: "Kriteria Penilaian",
+        body: "Atur kategori dan batas penilaian kandidat",
         icon: SlidersHorizontal,
         href: route("admin.criteria.index"),
-        color: "emerald",
+        color: "success",
         badge: null,
     },
     {
         title: "Jalankan Seleksi",
-        body: "Proses satu batch penilaian dan lihat hasilnya",
+        body: "Proses satu putaran penilaian dan lihat hasilnya",
         icon: PlayCircle,
         href: route("admin.selection.run"),
         color: "violet",
@@ -123,7 +123,7 @@ const actions = computed(() => [
     },
     {
         title: "Riwayat Seleksi",
-        body: "Telusuri batch terdahulu beserta peringkatnya",
+        body: "Telusuri putaran terdahulu beserta peringkatnya",
         icon: History,
         href: route("admin.history.index"),
         color: "rose",
@@ -134,7 +134,7 @@ const actions = computed(() => [
         body: "Pantau jejak perubahan dan tindakan pengelola",
         icon: ScrollText,
         href: route("admin.activity.index"),
-        color: "cyan",
+        color: "info",
         badge: null,
     },
 ]);
@@ -201,7 +201,7 @@ const systemStatus = computed(() => ({
                         class="stat-card group"
                     >
                         <div class="flex items-start justify-between">
-                            <div :class="`stat-icon stat-${stat.color}`">
+                            <div :class="`stat-icon tone-${stat.color}`">
                                 <component :is="stat.icon" :size="20" />
                             </div>
                             <ArrowUpRight
@@ -241,7 +241,7 @@ const systemStatus = computed(() => ({
                             class="action-card group"
                         >
                             <div class="flex items-start justify-between">
-                                <div :class="`action-icon action-${action.color}`">
+                                <div :class="`action-icon tone-${action.color}`">
                                     <component :is="action.icon" :size="20" />
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -348,6 +348,7 @@ const systemStatus = computed(() => ({
 .page-header {
     margin-bottom: 2rem;
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
@@ -411,7 +412,7 @@ const systemStatus = computed(() => ({
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #10b981;
+    background: var(--success);
     flex-shrink: 0;
 }
 
@@ -451,33 +452,35 @@ const systemStatus = computed(() => ({
     transform: translateY(-2px);
 }
 
-.stat-icon {
+/* ---- Unified theme-aware tone palette (shared by stats & actions) ----
+   Each `.tone-*` sets two CSS vars (`--tone` fg, `--tone-bg` bg) that the
+   icon chip reads. Light uses soft pastel fills; dark uses translucent
+   overlays + brighter foregrounds so chips keep contrast in both themes. */
+.tone-primary { --tone: #2563eb; --tone-bg: #dbeafe; }
+.tone-success { --tone: #059669; --tone-bg: #d1fae5; }
+.tone-warning { --tone: #d97706; --tone-bg: #fef3c7; }
+.tone-info    { --tone: #0891b2; --tone-bg: #cffafe; }
+.tone-violet  { --tone: #7c3aed; --tone-bg: #ede9fe; }
+.tone-rose    { --tone: #e11d48; --tone-bg: #ffe4e6; }
+
+.dark .tone-primary { --tone: #93c5fd; --tone-bg: rgba(96, 165, 250, 0.16); }
+.dark .tone-success { --tone: #4ade80; --tone-bg: rgba(74, 222, 128, 0.16); }
+.dark .tone-warning { --tone: #fbbf24; --tone-bg: rgba(251, 191, 36, 0.16); }
+.dark .tone-info    { --tone: #22d3ee; --tone-bg: rgba(34, 211, 238, 0.16); }
+.dark .tone-violet  { --tone: #a78bfa; --tone-bg: rgba(167, 139, 250, 0.16); }
+.dark .tone-rose    { --tone: #fb7185; --tone-bg: rgba(251, 113, 133, 0.16); }
+
+/* Icon chip — same size & treatment for both stats and actions */
+.stat-icon,
+.action-icon {
     display: grid;
     height: 44px;
     width: 44px;
     place-items: center;
     border-radius: 12px;
+    background: var(--tone-bg);
+    color: var(--tone);
     transition: all 0.2s ease;
-}
-
-.stat-warning .stat-icon {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    color: #d97706;
-}
-
-.stat-success .stat-icon {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #059669;
-}
-
-.stat-primary .stat-icon {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    color: #2563eb;
-}
-
-.stat-info .stat-icon {
-    background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
-    color: #0891b2;
 }
 
 .stat-label {
@@ -514,7 +517,7 @@ const systemStatus = computed(() => ({
     gap: 2px;
     font-size: 12px;
     font-weight: 600;
-    color: #10b981;
+    color: var(--success);
 }
 
 /* =====================================================
@@ -561,7 +564,7 @@ const systemStatus = computed(() => ({
 
 .actions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1rem;
 }
 
@@ -569,7 +572,7 @@ const systemStatus = computed(() => ({
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: 1.25rem;
+    padding: 1.5rem;
     border-radius: var(--radius-card);
     background: var(--card);
     border: 1px solid var(--border);
@@ -581,45 +584,6 @@ const systemStatus = computed(() => ({
     border-color: var(--primary);
     box-shadow: var(--shadow-card);
     transform: translateY(-2px);
-}
-
-.action-icon {
-    display: grid;
-    height: 40px;
-    width: 40px;
-    place-items: center;
-    border-radius: 10px;
-    transition: all 0.2s ease;
-}
-
-.action-blue .action-icon {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    color: #2563eb;
-}
-
-.action-amber .action-icon {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    color: #d97706;
-}
-
-.action-emerald .action-icon {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #059669;
-}
-
-.action-violet .action-icon {
-    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-    color: #7c3aed;
-}
-
-.action-rose .action-icon {
-    background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%);
-    color: #e11d48;
-}
-
-.action-cyan .action-icon {
-    background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
-    color: #0891b2;
 }
 
 .action-badge {
@@ -682,8 +646,8 @@ const systemStatus = computed(() => ({
 }
 
 .sidebar-tip {
-    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(156, 179, 166, 0.1) 100%);
-    border-color: var(--primary);
+    background: var(--primary-soft);
+    border-color: color-mix(in oklab, var(--primary) 30%, var(--border));
 }
 
 .tip-icon {
@@ -734,7 +698,7 @@ const systemStatus = computed(() => ({
     display: flex;
     align-items: center;
     gap: 4px;
-    color: #10b981;
+    color: var(--success);
     font-weight: 500;
 }
 
@@ -800,7 +764,7 @@ const systemStatus = computed(() => ({
     height: 10px;
     width: 10px;
     border-radius: 50%;
-    background: #10b981;
+    background: var(--success);
 }
 
 .status-dot-ping {
@@ -809,7 +773,7 @@ const systemStatus = computed(() => ({
     height: 10px;
     width: 10px;
     border-radius: 50%;
-    background: #10b981;
+    background: var(--success);
     animation: status-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 

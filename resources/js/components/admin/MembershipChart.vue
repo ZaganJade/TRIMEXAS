@@ -49,9 +49,10 @@ const path = computed(() => {
 
 <template>
     <svg
-        :width="width"
-        :height="height"
+        width="100%"
         :viewBox="`0 0 ${width} ${height}`"
+        :style="{ height: 'auto', maxWidth: `${width}px` }"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         :aria-label="`Kurva membership ${shape}`"
         class="overflow-visible"

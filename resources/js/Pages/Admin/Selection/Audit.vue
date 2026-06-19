@@ -150,6 +150,57 @@ const executedLabel = computed(() => {
     }).format(new Date(props.batch.started_at));
 });
 
+/* Narasi penjelasan skor (bahasa deskriptif) — disamakan dengan halaman
+   analisa mahasiswa. Diturunkan dari data asli (keanggotaan, aturan
+   yang cocok, posisi skor) agar selalu sesuai dengan skor. */
+
+// Tiga ciri profil kandidat yang paling memengaruhi skor.
+const topTraits = computed(() =>
+    membershipRows.value
+        .filter((row) => row.dominant && Number(row.dominant.degree) > 0)
+        .map((row) => ({
+            label: row.label,
+            set: labelize(row.dominant.name),
+            percent: Math.round(Number(row.dominant.degree) * 100),
+        }))
+        .sort((a, b) => b.percent - a.percent)
+        .slice(0, 3),
+);
+
+// Bagaimana pertimbangan terbagi ke tiap keputusan (Layak / Dipertimbangkan / Belum Layak), dalam persen.
+const evidenceShare = computed(() => {
+    const groups = {};
+    let total = 0;
+    for (const rule of firedRules.value) {
+        const key = rule.consequent || "tidak_layak";
+        groups[key] = (groups[key] || 0) + (Number(rule.alpha) || 0);
+        total += Number(rule.alpha) || 0;
+    }
+    if (total === 0) return [];
+    return Object.entries(groups)
+        .map(([consequent, alpha]) => ({
+            consequent,
+            label: (CONSEQUENT_META[consequent] ?? { label: labelize(consequent) }).label,
+            share: Math.round((alpha / total) * 100),
+        }))
+        .sort((a, b) => b.share - a.share);
+});
+
+// Letak skor dibanding batas penilaian, dalam kalimat yang mudah dipahami.
+const verdictMargin = computed(() => {
+    const s = scoreValue.value;
+    if (s === null) return null;
+    const t1 = threshold1.value;
+    const t2 = threshold2.value;
+    if (s >= t2) {
+        return { gap: Number(s - t2).toFixed(1), direction: "di atas", boundary: "batas kelayakan" };
+    }
+    if (s >= t1) {
+        return { gap: Number(s - t1).toFixed(1), direction: "di atas", boundary: "batas pertimbangan" };
+    }
+    return { gap: Number(t1 - s).toFixed(1), direction: "di bawah", boundary: "batas pertimbangan" };
+});
+
 function formatCurrency(value) {
     return new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -158,8 +209,8 @@ function formatCurrency(value) {
     }).format(Number(value));
 }
 
-function formatAlpha(value) {
-    return Number(value).toFixed(3);
+function toPercent(value) {
+    return `${Math.round(Number(value) * 100)}%`;
 }
 
 function formatZ(value) {
@@ -209,7 +260,7 @@ function alphaWidth(alpha) {
                             <FileSearch :size="22" />
                         </div>
                         <div class="min-w-0">
-                            <p class="eyebrow">Audit Trail Seleksi</p>
+                            <p class="eyebrow">Rincian Penilaian Kandidat</p>
                             <h1 class="page-title">{{ candidate.full_name }}</h1>
                             <div class="header-meta">
                                 <span class="meta-chip mono">{{ candidate.nim }}</span>
@@ -240,7 +291,7 @@ function alphaWidth(alpha) {
                 <div>
                     <h2 class="ineligible-title">Tidak Memenuhi Syarat Seleksi</h2>
                     <p class="ineligible-copy">
-                        Kandidat tidak melanjutkan ke perhitungan fuzzy karena gagal prasyarat eligibility.
+                        Kandidat tidak lanjut ke penilaian karena belum memenuhi syarat awal.
                     </p>
                     <ul class="reason-list">
                         <li v-for="reason in result.ineligibility_reasons" :key="reason" class="reason-item">
@@ -256,7 +307,7 @@ function alphaWidth(alpha) {
                 <Card variant="elevated" class="verdict-card">
                     <div class="verdict-top">
                         <div>
-                            <p class="eyebrow">Skor Akhir · Tsukamoto</p>
+                            <p class="eyebrow">Skor Kelayakan</p>
                             <p class="score-display tnum">{{ scoreValue?.toFixed?.(2) ?? scoreValue }}</p>
                         </div>
                         <div class="verdict-badges">
@@ -265,29 +316,52 @@ function alphaWidth(alpha) {
                         </div>
                     </div>
 
-                    <div class="threshold-track" role="img" :aria-label="`Skor ${scoreValue} pada skala 0-100`">
+                    <div class="threshold-track" role="img" :aria-label="`Skor ${scoreValue} dari 100`">
                         <div class="threshold-zones">
-                            <span class="zone zone-low">0 – {{ threshold1 }}</span>
-                            <span class="zone zone-mid">{{ threshold1 }} – {{ threshold2 }}</span>
-                            <span class="zone zone-high">{{ threshold2 }} – 100</span>
+                            <span class="zone zone-low">Belum layak</span>
+                            <span class="zone zone-mid">Dipertimbangkan</span>
+                            <span class="zone zone-high">Layak</span>
                         </div>
                         <div class="threshold-bar">
-                            <div class="threshold-marker t1" :style="{ left: `${threshold1}%` }">
-                                <span class="marker-label mono">T₁</span>
-                            </div>
-                            <div class="threshold-marker t2" :style="{ left: `${threshold2}%` }">
-                                <span class="marker-label mono">T₂</span>
-                            </div>
                             <div class="score-pin" :style="{ left: `${scorePosition}%` }">
                                 <span class="score-pin-dot" />
                             </div>
                         </div>
                     </div>
 
-                    <p class="threshold-caption">
-                        T₁ = {{ threshold1 }} (batas layak), T₂ = {{ threshold2 }} (batas dipertimbangkan).
-                        Skor dihitung dari agregasi rule yang aktif (α &gt; 0).
-                    </p>
+                    <div class="score-narrative">
+                        <p class="sn-paragraph">
+                            Skor kelayakan kandidat <strong>{{ scoreValue?.toFixed?.(2) ?? scoreValue }}</strong> dari 100.
+                            Dengan angka ini, profil kandidat dinilai
+                            <span class="tag capitalize" :class="categoryMeta.tag">{{ categoryMeta.label }}</span>
+                            untuk menerima beasiswa pada batch {{ batch.label }}.
+                        </p>
+
+                        <p v-if="topTraits.length" class="sn-paragraph">
+                            Beberapa hal yang paling menentukan skor ini adalah
+                            <template v-for="(t, i) in topTraits" :key="t.label">
+                                <strong>{{ t.label }}</strong> yang tergolong {{ t.set }}
+                                <span class="text-[var(--muted)]">({{ t.percent }}%)</span><template v-if="i < topTraits.length - 1">, </template>
+                            </template>.
+                            Kombinasi ciri-ciri inilah yang menarik hasil ke keputusan akhir kandidat.
+                        </p>
+
+                        <p v-if="evidenceShare.length" class="sn-paragraph">
+                            Saat menilai, sistem menemukan <strong>{{ firedRules.length }} aturan</strong> penilaian yang cocok dengan profil kandidat.
+                            Sebagian besar pertimbangan mengarah ke
+                            <strong>{{ evidenceShare[0].label }}</strong> (sekitar {{ evidenceShare[0].share }}%)
+                            <template v-if="evidenceShare.length > 1">
+                                , dengan sedikit pertimbangan lain ke {{ evidenceShare[1].label }} ({{ evidenceShare[1].share }}%)
+                            </template>.
+                        </p>
+
+                        <p v-if="verdictMargin" class="sn-paragraph">
+                            Skor kandidat berada <strong>{{ verdictMargin.gap }} poin {{ verdictMargin.direction }} {{ verdictMargin.boundary }}</strong>.
+                            <template v-if="categoryMeta.label === 'Layak'">Dengan selisih ini, hasil keputusan kandidat tergolong kuat.</template>
+                            <template v-else-if="categoryMeta.label === 'Dipertimbangkan'">Kandidat berada di zona yang masih dipertimbangkan, jadi hasil bisa berubah pada batch berikutnya.</template>
+                            <template v-else>Profil kandidat belum mencapai batas minimum pada batch ini.</template>
+                        </p>
+                    </div>
                 </Card>
 
                 <div class="insight-cards">
@@ -296,21 +370,21 @@ function alphaWidth(alpha) {
                             <Zap :size="18" />
                         </div>
                         <p class="insight-value mono tnum">{{ firedRules.length }}</p>
-                        <p class="insight-label">Rule aktif</p>
+                        <p class="insight-label">Aturan berlaku</p>
                     </Card>
                     <Card variant="outline" class="insight-card">
                         <div class="insight-icon insight-icon-accent">
                             <Target :size="18" />
                         </div>
                         <p class="insight-value mono tnum">{{ rulesCatalog.length }}</p>
-                        <p class="insight-label">Rule dalam snapshot</p>
+                        <p class="insight-label">Total aturan</p>
                     </Card>
                     <Card variant="outline" class="insight-card">
                         <div class="insight-icon insight-icon-success">
                             <Sparkles :size="18" />
                         </div>
                         <p class="insight-value capitalize">{{ categoryMeta.label }}</p>
-                        <p class="insight-label">Kategori output</p>
+                        <p class="insight-label">Status</p>
                     </Card>
                 </div>
             </section>
@@ -319,8 +393,8 @@ function alphaWidth(alpha) {
             <section class="analysis-grid reveal reveal-delay-2">
                 <Card variant="elevated" class="panel-card">
                     <div class="panel-head">
-                        <h2 class="panel-title">Input Crisp</h2>
-                        <p class="panel-desc">Nilai mentah kandidat yang masuk ke mesin fuzzy.</p>
+                        <h2 class="panel-title">Data Input Kandidat</h2>
+                        <p class="panel-desc">Data profil dan prestasi kandidat yang dinilai sistem.</p>
                     </div>
                     <div class="input-grid">
                         <div v-for="row in crispInputs" :key="row.key" class="input-item">
@@ -337,8 +411,8 @@ function alphaWidth(alpha) {
 
                 <Card variant="elevated" class="panel-card">
                     <div class="panel-head">
-                        <h2 class="panel-title">Fuzzifikasi</h2>
-                        <p class="panel-desc">Derajat keanggotaan (μ) tiap himpunan fuzzy per kriteria.</p>
+                        <h2 class="panel-title">Profil Penilaian Kandidat</h2>
+                        <p class="panel-desc">Seberapa cocok setiap nilai kandidat dengan kategori tertentu.</p>
                     </div>
 
                     <div v-if="membershipRows.length" class="membership-list">
@@ -346,8 +420,8 @@ function alphaWidth(alpha) {
                             <div class="membership-head">
                                 <h3 class="membership-title">{{ row.label }}</h3>
                                 <span v-if="row.dominant" class="dominant-chip">
-                                    Dominan: <strong>{{ labelize(row.dominant.name) }}</strong>
-                                    <span class="mono tnum">({{ formatAlpha(row.dominant.degree) }})</span>
+                                    Paling cocok: <strong>{{ labelize(row.dominant.name) }}</strong>
+                                    <span class="mono tnum">({{ toPercent(row.dominant.degree) }})</span>
                                 </span>
                             </div>
                             <div class="membership-bars">
@@ -364,12 +438,12 @@ function alphaWidth(alpha) {
                                             :style="{ width: alphaWidth(entry.degree) }"
                                         />
                                     </div>
-                                    <span class="membership-degree mono tnum">{{ formatAlpha(entry.degree) }}</span>
+                                    <span class="membership-degree mono tnum">{{ toPercent(entry.degree) }}</span>
                                 </div>
                             </div>
                         </article>
                     </div>
-                    <p v-else class="empty-note">Data fuzzifikasi tidak tersedia untuk kandidat ini.</p>
+                    <p v-else class="empty-note">Detail profil penilaian belum tersedia untuk kandidat ini.</p>
                 </Card>
             </section>
 
@@ -377,19 +451,18 @@ function alphaWidth(alpha) {
             <section class="rules-section reveal reveal-delay-3">
                 <div class="rules-head">
                     <div>
-                        <h2 class="panel-title">Rule yang Dieksekusi</h2>
+                        <h2 class="panel-title">Aturan Penilaian yang Berlaku</h2>
                         <p class="panel-desc">
-                            Rule base snapshot batch ini. Hanya rule dengan derajat aktivasi α &gt; 0 yang
-                            berkontribusi ke skor Z.
+                            Daftar aturan penilaian pada putaran ini. Hanya aturan yang cocok dengan profil kandidat yang memengaruhi skor akhir.
                         </p>
                     </div>
                     <div class="rules-toolbar">
                         <div class="legend">
-                            <span class="legend-item"><span class="legend-dot legend-fired" /> Aktif (α &gt; 0)</span>
-                            <span class="legend-item"><span class="legend-dot legend-idle" /> Tidak aktif</span>
+                            <span class="legend-item"><span class="legend-dot legend-fired" /> Berlaku</span>
+                            <span class="legend-item"><span class="legend-dot legend-idle" /> Tidak berlaku</span>
                         </div>
                         <Button size="sm" variant="ghost" @click="showAllRules = !showAllRules">
-                            {{ showAllRules ? "Hanya rule aktif" : `Tampilkan semua (${rulesCatalog.length})` }}
+                            {{ showAllRules ? "Hanya yang berlaku" : `Tampilkan semua (${rulesCatalog.length})` }}
                         </Button>
                     </div>
                 </div>
@@ -397,8 +470,8 @@ function alphaWidth(alpha) {
                 <div class="rules-glossary">
                     <Info :size="14" />
                     <p>
-                        <strong>α (alpha)</strong> = tingkat kecocokan antecedent rule.
-                        <strong>z</strong> = nilai consequent hasil defuzzifikasi Tsukamoto per rule.
+                        <strong>Kecocokan</strong> menunjukkan seberapa pas aturan dengan profil kandidat.
+                        <strong>Kontribusi skor</strong> adalah tambahan skor dari aturan tersebut.
                     </p>
                 </div>
 
@@ -419,18 +492,18 @@ function alphaWidth(alpha) {
                                 <span class="tag capitalize" :class="consequentMeta(rule.consequent).tag">
                                     {{ consequentMeta(rule.consequent).label }}
                                 </span>
-                                <span v-if="rule.fired" class="fired-badge">Aktif</span>
+                                <span v-if="rule.fired" class="fired-badge">Berlaku</span>
                             </div>
                             <div class="rule-metrics">
                                 <div class="metric">
-                                    <span class="metric-label">α</span>
-                                    <span class="metric-value mono tnum">{{ formatAlpha(rule.alpha) }}</span>
+                                    <span class="metric-label">Kecocokan</span>
+                                    <span class="metric-value mono tnum">{{ toPercent(rule.alpha) }}</span>
                                     <div class="metric-bar">
                                         <div class="metric-fill" :style="{ width: alphaWidth(rule.alpha) }" />
                                     </div>
                                 </div>
                                 <div class="metric metric-z">
-                                    <span class="metric-label">z</span>
+                                    <span class="metric-label">Kontribusi</span>
                                     <span class="metric-value mono tnum">{{ formatZ(rule.z) }}</span>
                                 </div>
                                 <ChevronDown :size="16" class="rule-chevron" :class="{ 'rotate-180': expandedRule === rule.code }" />
@@ -439,7 +512,7 @@ function alphaWidth(alpha) {
 
                         <div v-if="expandedRule === rule.code" class="rule-detail">
                             <p v-if="rule.description" class="rule-description">{{ rule.description }}</p>
-                            <p v-else class="rule-description muted">Deskripsi rule belum tersedia.</p>
+                            <p v-else class="rule-description muted">Deskripsi aturan belum tersedia.</p>
 
                             <div class="antecedent-grid">
                                 <span
@@ -456,7 +529,7 @@ function alphaWidth(alpha) {
                 </div>
 
                 <div v-else class="empty-state">
-                    Tidak ada rule yang cocok dengan filter saat ini.
+                    Tidak ada aturan yang cocok dengan filter saat ini.
                 </div>
             </section>
         </div>
@@ -760,11 +833,30 @@ function alphaWidth(alpha) {
     box-shadow: 0 0 0 2px var(--primary), 0 4px 12px rgba(49, 137, 198, 0.35);
 }
 
-.threshold-caption {
+.score-narrative {
     margin-top: 12px;
-    font-size: 12px;
-    line-height: 1.55;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.sn-paragraph {
+    font-size: 0.875rem;
+    line-height: 1.7;
     color: var(--muted);
+}
+
+.sn-paragraph + .sn-paragraph {
+    margin-top: 0.6rem;
+}
+
+.sn-paragraph strong {
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+.sn-paragraph .tag {
+    margin: 0 0.1rem;
+    vertical-align: middle;
 }
 
 .insight-cards {
