@@ -6,6 +6,30 @@ it('redirects guests to login when accessing /admin/dashboard', function () {
     $this->get('/admin/dashboard')->assertRedirect('/login');
 });
 
+it('redirects authenticated admins away from guest auth pages to admin dashboard', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get('/login')
+        ->assertRedirect('/admin/dashboard');
+
+    $this->actingAs($admin)
+        ->get('/register')
+        ->assertRedirect('/admin/dashboard');
+});
+
+it('redirects authenticated approved mahasiswa away from guest auth pages to mahasiswa dashboard', function () {
+    $student = User::factory()->mahasiswa()->create();
+
+    $this->actingAs($student)
+        ->get('/login')
+        ->assertRedirect('/mahasiswa/dashboard');
+
+    $this->actingAs($student)
+        ->get('/register')
+        ->assertRedirect('/mahasiswa/dashboard');
+});
+
 it('forbids mahasiswa from accessing /admin/dashboard', function () {
     $student = User::factory()->mahasiswa()->create();
 
