@@ -1820,6 +1820,12 @@ html.lenis body {
     animation: rise-in 0.7s var(--ease-soft) both;
 }
 
+.preloader-brand-img {
+    width: clamp(220px, 42vw, 440px);
+    height: auto;
+    animation: rise-in 0.7s var(--ease-soft) both;
+}
+
 .preloader-tag {
     font-size: 0.66rem;
     letter-spacing: 0.28em;
