@@ -12,7 +12,8 @@
         <meta property="og:type" content="website">
         <meta name="twitter:card" content="summary">
 
-        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233189C6'/%3E%3Cpath d='M5 17 L10 7 L13 13 L19 5' stroke='%23F7FAFC' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+        <link rel="icon" type="image/png" href="/favicon-trimexas.png">
+        <link rel="apple-touch-icon" href="/Trimexas-mark.png">
 
         <title inertia>{{ config('app.name', 'Trimexas') }}</title>
 

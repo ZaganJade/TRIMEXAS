@@ -691,7 +691,7 @@ onBeforeUnmount(() => {
     <!-- Intro preloader -->
     <div v-if="showIntro" class="preloader" :class="{ 'is-leaving': introLeaving }">
         <div class="preloader-inner">
-            <span class="preloader-brand display">Trimexas</span>
+            <img src="/Trimexas-logo.png" alt="Trimexas" class="preloader-brand-img" />
             <span class="preloader-tag mono">SPK Beasiswa · Fuzzy Tsukamoto</span>
         </div>
         <span class="preloader-count mono">{{ introCount }}</span>
@@ -733,12 +733,7 @@ onBeforeUnmount(() => {
                     aria-label="Navigasi utama"
                 >
                     <Link href="/" class="group flex items-center gap-2.5">
-                        <span class="brand-mark">
-                            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 16 L9 7 L13 12 L20 4" />
-                            </svg>
-                        </span>
-                        <span class="display text-[18px] tracking-tight text-[var(--ink)]">{{ appName }}</span>
+                        <img src="/Trimexas-logo.png" :alt="appName" class="h-8 w-auto" />
                     </Link>
 
                     <div class="hidden items-center gap-8 text-sm font-medium md:flex">
@@ -1251,12 +1246,7 @@ onBeforeUnmount(() => {
         <footer class="relative z-10 mx-auto max-w-[1240px] px-5 pb-10 lg:px-8">
             <div class="flex flex-col gap-6 border-t border-[var(--border)] pt-10 md:flex-row md:items-center md:justify-between">
                 <div class="flex items-center gap-2.5">
-                    <span class="brand-mark !h-8 !w-8">
-                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 16 L9 7 L13 12 L20 4" />
-                        </svg>
-                    </span>
-                    <span class="display text-base tracking-tight text-[var(--ink)]">Trimexas</span>
+                    <img src="/Trimexas-logo.png" alt="Trimexas" class="h-7 w-auto" />
                 </div>
 
                 <div class="mono flex flex-wrap items-center gap-x-7 gap-y-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">

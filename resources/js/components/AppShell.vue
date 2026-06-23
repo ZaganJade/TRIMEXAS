@@ -65,24 +65,9 @@ watch(() => page.url, () => {
                 >
                     <div class="flex items-center gap-6">
                         <Link :href="homeHref" class="group flex items-center gap-2.5">
-                            <span class="brand-mark">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    class="h-5 w-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2.4"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M4 16 L9 7 L13 12 L20 4" />
-                                </svg>
-                            </span>
-                            <span class="display text-[17px] tracking-tight text-[var(--ink)]">
-                                Trimexas
-                                <span v-if="brandSuffix" class="text-[13px] font-normal text-[var(--muted)]">
-                                    / {{ brandSuffix }}
-                                </span>
+                            <img src="/Trimexas-logo.png" alt="Trimexas" class="h-7 w-auto" />
+                            <span v-if="brandSuffix" class="display text-[15px] font-normal text-[var(--muted)]">
+                                / {{ brandSuffix }}
                             </span>
                         </Link>
 

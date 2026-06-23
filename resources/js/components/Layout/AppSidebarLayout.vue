@@ -126,16 +126,9 @@ onBeforeUnmount(() => {
         >
             <div class="sidebar-header">
                 <Link :href="homeHref" class="sidebar-brand">
-                    <span class="brand-icon">
-                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.4">
-                            <path d="M4 16 L9 7 L13 12 L20 4" />
-                        </svg>
-                    </span>
+                    <img v-show="!isSidebarOpen" src="/Trimexas-mark.png" alt="Trimexas" class="sidebar-brand-mark" />
                     <Transition name="brand-text">
-                        <span v-show="isSidebarOpen" class="sidebar-brand-text">
-                            Trimexas
-                            <span v-if="brandSuffix" class="sidebar-brand-suffix">/ {{ brandSuffix }}</span>
-                        </span>
+                        <img v-show="isSidebarOpen" src="/Trimexas-logo.png" alt="Trimexas" class="sidebar-brand-logo" />
                     </Transition>
                 </Link>
 
@@ -353,15 +346,18 @@ onBeforeUnmount(() => {
     min-width: 0;
 }
 
-.brand-icon {
-    display: grid;
-    height: 36px;
-    width: 36px;
-    place-items: center;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-    color: white;
-    border-radius: 10px;
+.sidebar-brand-mark {
+    height: 30px;
+    width: 30px;
+    object-fit: contain;
     flex-shrink: 0;
+}
+
+.sidebar-brand-logo {
+    height: 28px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
 }
 
 .sidebar-brand-text {
